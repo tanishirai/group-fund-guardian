@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,22 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				success: {
+					DEFAULT: 'hsl(var(--success))',
+					foreground: 'hsl(var(--success-foreground))'
+				},
+				warning: {
+					DEFAULT: 'hsl(var(--warning))',
+					foreground: 'hsl(var(--warning-foreground))'
+				},
+				positive: {
+					DEFAULT: 'hsl(var(--positive))',
+					foreground: 'hsl(var(--positive-foreground))'
+				},
+				negative: {
+					DEFAULT: 'hsl(var(--negative))',
+					foreground: 'hsl(var(--negative-foreground))'
 				}
 			},
 			borderRadius: {
@@ -84,11 +101,94 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'fade-in': {
+					from: {
+						opacity: '0'
+					},
+					to: {
+						opacity: '1'
+					}
+				},
+				'fade-out': {
+					from: {
+						opacity: '1'
+					},
+					to: {
+						opacity: '0'
+					}
+				},
+				'slide-in': {
+					from: {
+						transform: 'translateY(10px)',
+						opacity: '0'
+					},
+					to: {
+						transform: 'translateY(0)',
+						opacity: '1'
+					}
+				},
+				'slide-out': {
+					from: {
+						transform: 'translateY(0)',
+						opacity: '1'
+					},
+					to: {
+						transform: 'translateY(10px)',
+						opacity: '0'
+					}
+				},
+				'scale-in': {
+					from: {
+						transform: 'scale(0.95)',
+						opacity: '0'
+					},
+					to: {
+						transform: 'scale(1)',
+						opacity: '1'
+					}
+				},
+				'scale-out': {
+					from: {
+						transform: 'scale(1)',
+						opacity: '1'
+					},
+					to: {
+						transform: 'scale(0.95)',
+						opacity: '0'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-in': 'fade-in 0.3s ease-out',
+				'fade-out': 'fade-out 0.3s ease-out',
+				'slide-in': 'slide-in 0.3s ease-out',
+				'slide-out': 'slide-out 0.3s ease-out',
+				'scale-in': 'scale-in 0.3s ease-out',
+				'scale-out': 'scale-out 0.3s ease-out'
+			},
+			boxShadow: {
+				'glass': '0 4px 30px rgba(0, 0, 0, 0.1)',
+				'glass-lg': '0 8px 40px rgba(0, 0, 0, 0.08)',
+				'subtle': '0 2px 10px rgba(0, 0, 0, 0.05)',
+				'card': '0 4px 20px rgba(0, 0, 0, 0.03)',
+				'button': '0 2px 5px rgba(0, 0, 0, 0.1)',
+			},
+			backdropBlur: {
+				'xs': '2px',
+			},
+			transitionProperty: {
+				'height': 'height',
+				'spacing': 'margin, padding',
+			},
+			transitionTimingFunction: {
+				'bounce-subtle': 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+			},
+			transitionDuration: {
+				'250': '250ms',
+				'400': '400ms',
 			}
 		}
 	},
