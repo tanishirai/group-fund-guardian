@@ -98,7 +98,7 @@ export default function SidebarNav() {
             <NavLink 
               to="/profile"
               className={({ isActive }) => cn(
-                "flex items-center p-2 rounded-md",
+                "flex items-center p-2 rounded-md cursor-pointer",
                 isActive ? "bg-sidebar-primary" : "hover:bg-sidebar-accent"
               )}
               onClick={() => isMobile && setIsOpen(false)}
