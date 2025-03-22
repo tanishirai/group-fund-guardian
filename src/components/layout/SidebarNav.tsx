@@ -9,7 +9,8 @@ import {
   ArrowLeftRight, 
   Bell,
   Menu,
-  X
+  X,
+  User
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -17,6 +18,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Groups", href: "/groups", icon: Users },
+  { name: "Members", href: "/members", icon: User },
   { name: "Expenses", href: "/expenses", icon: Receipt },
   { name: "Budget", href: "/budget", icon: PieChart },
   { name: "Debt Tracker", href: "/debt-tracker", icon: ArrowLeftRight },
@@ -93,7 +95,14 @@ export default function SidebarNav() {
 
           {/* User section */}
           <div className="p-4 border-t border-sidebar-border">
-            <div className="flex items-center">
+            <NavLink 
+              to="/profile"
+              className={({ isActive }) => cn(
+                "flex items-center p-2 rounded-md",
+                isActive ? "bg-sidebar-primary" : "hover:bg-sidebar-accent"
+              )}
+              onClick={() => isMobile && setIsOpen(false)}
+            >
               <div className="h-9 w-9 rounded-full bg-sidebar-accent flex items-center justify-center text-white">
                 <span className="text-sm font-medium">JD</span>
               </div>
@@ -101,7 +110,7 @@ export default function SidebarNav() {
                 <p className="text-sm font-medium text-white">John Doe</p>
                 <p className="text-xs text-sidebar-foreground/70">View Profile</p>
               </div>
-            </div>
+            </NavLink>
           </div>
         </div>
       </div>
