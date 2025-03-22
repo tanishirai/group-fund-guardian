@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   ReceiptText, 
@@ -22,17 +21,33 @@ import {
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { TransactionCard, Transaction } from "@/components/ui/TransactionCard";
-import { transactions } from "@/lib/data";
+import { transactions, groups } from "@/lib/data";
 import PageLayout from "@/components/layout/PageLayout";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 const Expenses = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [selectedExpense, setSelectedExpense] = useState<Transaction | null>(transactions[0]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newExpense, setNewExpense] = useState({
+    title: "",
+    amount: "",
+    category: "",
+    paidBy: "",
+    splitType: "equal",
+    date: new Date().toISOString().split('T')[0]
+  });
+  const { toast } = useToast();
 
   // Get unique categories
   const categories = Array.from(new Set(transactions.map((t) => t.category)));
+  
+  // Get all members from all groups
+  const allMembers = Array.from(new Set(groups.flatMap(group => group.members)));
 
   // Filter transactions based on search and filters
   const filteredTransactions = transactions.filter((transaction) => {
@@ -45,6 +60,55 @@ const Expenses = () => {
     return matchesSearch && matchesCategory;
   });
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setNewExpense({
+      ...newExpense,
+      [name]: value
+    });
+  };
+
+  const handleAddExpense = () => {
+    // Validate form
+    if (!newExpense.title || !newExpense.amount || !newExpense.category || !newExpense.paidBy) {
+      toast({
+        title: "Missing information",
+        description: "Please fill all required fields.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Create new expense object
+    const amount = parseFloat(newExpense.amount);
+    if (isNaN(amount)) {
+      toast({
+        title: "Invalid amount",
+        description: "Please enter a valid amount.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // In a real app, this would be done through an API call
+    // For now, we'll just show a success toast
+    toast({
+      title: "Expense added",
+      description: `${newExpense.title} ($${amount.toFixed(2)}) has been added successfully.`,
+    });
+
+    // Reset form and close dialog
+    setNewExpense({
+      title: "",
+      amount: "",
+      category: "",
+      paidBy: "",
+      splitType: "equal",
+      date: new Date().toISOString().split('T')[0]
+    });
+    setIsDialogOpen(false);
+  };
+
   return (
     <PageLayout>
       <PageHeader 
@@ -53,6 +117,7 @@ const Expenses = () => {
       >
         <Button 
           className="bg-primary text-white hover:bg-primary/90 transition-colors shadow-button"
+          onClick={() => setIsDialogOpen(true)}
         >
           <Plus className="mr-2 h-4 w-4" /> Add Expense
         </Button>
@@ -99,7 +164,6 @@ const Expenses = () => {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Expenses List */}
         <div className="col-span-1 lg:col-span-1 space-y-4 animate-fade-in">
           <h3 className="text-lg font-semibold mb-2 flex items-center">
             <ReceiptText className="mr-2 h-5 w-5 text-primary" />
@@ -131,7 +195,6 @@ const Expenses = () => {
           )}
         </div>
 
-        {/* Expense Details */}
         {selectedExpense && (
           <div className="col-span-1 lg:col-span-2 animate-slide-in">
             <Card className="border shadow-card overflow-hidden">
@@ -181,7 +244,6 @@ const Expenses = () => {
                   </div>
                 </div>
 
-                {/* Split Details */}
                 <div>
                   <h3 className="text-lg font-semibold mb-4">Split Details</h3>
                   
@@ -204,7 +266,6 @@ const Expenses = () => {
                 </div>
               </div>
 
-              {/* Actions */}
               <div className="p-6 bg-secondary/50 flex justify-end space-x-3">
                 <Button variant="outline">Edit Expense</Button>
                 <Button variant="destructive">Delete</Button>
@@ -213,6 +274,113 @@ const Expenses = () => {
           </div>
         )}
       </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[550px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Add New Expense</DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-1 gap-2">
+              <Label htmlFor="title">Title</Label>
+              <Input
+                id="title"
+                name="title"
+                placeholder="e.g., Dinner at Restaurant"
+                value={newExpense.title}
+                onChange={handleInputChange}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="amount">Amount ($)</Label>
+                <Input
+                  id="amount"
+                  name="amount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={newExpense.amount}
+                  onChange={handleInputChange}
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="date">Date</Label>
+                <Input
+                  id="date"
+                  name="date"
+                  type="date"
+                  value={newExpense.date}
+                  onChange={handleInputChange}
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="category">Category</Label>
+                <Select name="category" value={newExpense.category} onValueChange={(value) => {
+                  setNewExpense({...newExpense, category: value});
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="paidBy">Paid By</Label>
+                <Select name="paidBy" value={newExpense.paidBy} onValueChange={(value) => {
+                  setNewExpense({...newExpense, paidBy: value});
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select person" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allMembers.map((member) => (
+                      <SelectItem key={member} value={member}>
+                        {member}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="splitType">Split Type</Label>
+              <Select name="splitType" value={newExpense.splitType} onValueChange={(value) => {
+                setNewExpense({...newExpense, splitType: value});
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select split method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="equal">Equal Split</SelectItem>
+                  <SelectItem value="custom">Custom Split</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+            <Button type="submit" onClick={handleAddExpense}>Add Expense</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageLayout>
   );
 };
