@@ -19,7 +19,7 @@ export function MemberList() {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Get initials for avatar fallback
-  const getInitials = (name) => {
+  const getInitials = (name: string) => {
     return name
       .split(' ')
       .map(part => part[0])
