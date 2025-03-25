@@ -18,9 +18,16 @@ import { PieChart } from "@/components/charts/PieChart";
 import { BarChart } from "@/components/charts/BarChart";
 import { transactions, categoryData, monthlyExpensesData } from "@/lib/data";
 import PageLayout from "@/components/layout/PageLayout";
+import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
   const [recentTransactions, setRecentTransactions] = useState(transactions.slice(0, 3));
+  const navigate = useNavigate();
+
+  const handleAddExpense = () => {
+    // Navigate to expenses page with a URL parameter to open the dialog
+    navigate('/expenses?openDialog=true');
+  };
 
   return (
     <PageLayout>
@@ -30,6 +37,7 @@ const Dashboard = () => {
       >
         <Button 
           className="bg-primary text-white hover:bg-primary/90 transition-colors shadow-button"
+          onClick={handleAddExpense}
         >
           <Plus className="mr-2 h-4 w-4" /> Add Expense
         </Button>
@@ -62,7 +70,12 @@ const Dashboard = () => {
         <Card className="p-6 shadow-card border border-border/50 overflow-hidden">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold">Recent Transactions</h3>
-            <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-primary hover:text-primary/80"
+              onClick={() => navigate('/expenses')}
+            >
               <Eye className="h-4 w-4 mr-1" /> View All
             </Button>
           </div>
@@ -97,18 +110,21 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Button 
           className="py-6 bg-gradient-to-br from-primary to-primary/80 text-white shadow-lg rounded-xl hover:shadow-xl transition-all"
+          onClick={handleAddExpense}
         >
           <Plus className="mr-2 h-5 w-5" /> Add New Expense
         </Button>
         <Button 
           variant="outline" 
           className="py-6 bg-white border-primary/30 shadow-sm rounded-xl hover:bg-primary/5 transition-all"
+          onClick={() => navigate('/budget')}
         >
           <Eye className="mr-2 h-5 w-5" /> View Budget
         </Button>
         <Button 
           variant="outline" 
           className="py-6 bg-white border-primary/30 shadow-sm rounded-xl hover:bg-primary/5 transition-all"
+          onClick={() => navigate('/debt-tracker')}
         >
           <ArrowRightLeft className="mr-2 h-5 w-5" /> Settle Payments
         </Button>

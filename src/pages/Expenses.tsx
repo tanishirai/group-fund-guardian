@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   ReceiptText, 
   Plus, 
@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const Expenses = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -43,6 +44,18 @@ const Expenses = () => {
     date: new Date().toISOString().split('T')[0]
   });
   const { toast } = useToast();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Check URL parameters to see if we should open the dialog
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    if (searchParams.get('openDialog') === 'true') {
+      setIsDialogOpen(true);
+      // Clean up the URL after opening dialog
+      navigate('/expenses', { replace: true });
+    }
+  }, [location, navigate]);
 
   // Get unique categories
   const categories = Array.from(new Set(transactions.map((t) => t.category)));
@@ -55,7 +68,7 @@ const Expenses = () => {
     const matchesSearch = searchTerm === "" || 
       transaction.title.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesCategory = categoryFilter === "" || 
+    const matchesCategory = categoryFilter === "" || categoryFilter === "all-categories" || 
       transaction.category === categoryFilter;
     
     return matchesSearch && matchesCategory;
