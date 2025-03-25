@@ -8,15 +8,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Budget = () => {
+  const [activeTab, setActiveTab] = useState("view");
   const [isEditing, setIsEditing] = useState(false);
 
   const handleCancel = () => {
     setIsEditing(false);
+    setActiveTab("view");
   };
 
   const handleSave = (values: any) => {
     console.log("Budget values saved:", values);
     setIsEditing(false);
+    setActiveTab("view");
   };
 
   return (
@@ -26,7 +29,7 @@ const Budget = () => {
         description="Set and manage your group budget allocations"
       />
       
-      <Tabs defaultValue="view" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-6">
           <TabsTrigger value="view">View Budget</TabsTrigger>
           <TabsTrigger value="edit">Edit Budget</TabsTrigger>
