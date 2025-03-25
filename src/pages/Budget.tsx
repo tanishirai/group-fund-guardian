@@ -8,13 +8,16 @@ import { budgets, categoryData } from "@/lib/data";
 import { PieChart } from "@/components/charts/PieChart";
 import PageLayout from "@/components/layout/PageLayout";
 import { PageHeader } from "@/components/ui/PageHeader";
+import BudgetForm from "@/components/BudgetForm";
+import { toast } from "sonner";
 
 export default function Budget() {
   const [showBudgetForm, setShowBudgetForm] = useState(false);
+  const [budgetData, setBudgetData] = useState(budgets);
   
   // Calculate total spent and percentage
-  const totalBudget = budgets.monthly;
-  const totalSpent = Object.values(budgets.categories).reduce(
+  const totalBudget = budgetData.monthly;
+  const totalSpent = Object.values(budgetData.categories).reduce(
     (acc, { spent }) => acc + spent,
     0
   );
@@ -25,6 +28,26 @@ export default function Budget() {
 
   const toggleBudgetForm = () => {
     setShowBudgetForm(!showBudgetForm);
+  };
+  
+  const handleSaveBudget = (values: any) => {
+    // Create a new budget object that maintains spent values but updates allocations
+    const updatedCategories = Object.entries(values.categories).reduce((acc, [category, { allocated }]) => {
+      acc[category] = {
+        allocated: allocated as number,
+        spent: budgetData.categories[category]?.spent || 0
+      };
+      return acc;
+    }, {} as typeof budgetData.categories);
+    
+    const updatedBudget = {
+      monthly: values.monthly,
+      categories: updatedCategories
+    };
+    
+    setBudgetData(updatedBudget);
+    setShowBudgetForm(false);
+    toast.success("Budget updated successfully");
   };
   
   return (
@@ -46,7 +69,10 @@ export default function Budget() {
       </PageHeader>
 
       {showBudgetForm ? (
-        <BudgetForm onCancel={toggleBudgetForm} />
+        <BudgetForm 
+          onCancel={toggleBudgetForm} 
+          onSave={handleSaveBudget}
+        />
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {/* Monthly Budget Overview */}
@@ -73,7 +99,6 @@ export default function Budget() {
                 <Progress 
                   value={spentPercentage} 
                   className="h-2 w-full"
-                  // Remove the indicatorClassName prop
                 />
                 <p className="mt-2 text-xs text-muted-foreground text-right">
                   {spentPercentage}% of budget used
@@ -104,7 +129,7 @@ export default function Budget() {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {Object.entries(budgets.categories).map(([category, { allocated, spent }]) => {
+                {Object.entries(budgetData.categories).map(([category, { allocated, spent }]) => {
                   const categoryPercentage = Math.min(Math.round((spent / allocated) * 100), 100);
                   const isOverCategoryBudget = spent > allocated;
                   
@@ -119,7 +144,6 @@ export default function Budget() {
                       <Progress 
                         value={categoryPercentage} 
                         className="h-2 w-full" 
-                        // Remove the indicatorClassName prop
                       />
                       <p className="mt-1 text-xs text-muted-foreground text-right">
                         {categoryPercentage}%
@@ -134,28 +158,5 @@ export default function Budget() {
         </div>
       )}
     </PageLayout>
-  );
-}
-
-function BudgetForm({ onCancel }: { onCancel: () => void }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Set Budget</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground mb-4">
-          Set your monthly budget and category limits to help track your expenses.
-        </p>
-        <div className="space-y-6">
-          {/* Form fields would go here */}
-          <p className="italic text-muted-foreground">Budget form implementation coming soon...</p>
-          <div className="flex justify-end space-x-4">
-            <Button variant="outline" onClick={onCancel}>Cancel</Button>
-            <Button>Save Budget</Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
