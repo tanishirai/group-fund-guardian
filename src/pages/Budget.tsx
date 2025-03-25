@@ -1,10 +1,21 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { PageHeader } from "@/components/ui/PageHeader";
 import PageLayout from "@/components/layout/PageLayout";
-import { BudgetForm } from "@/components/BudgetForm";
+import BudgetForm from "@/components/BudgetForm";
 
 const Budget = () => {
+  const [isEditing, setIsEditing] = useState(false);
+
+  const handleCancel = () => {
+    setIsEditing(false);
+  };
+
+  const handleSave = (values: any) => {
+    console.log("Budget values saved:", values);
+    setIsEditing(false);
+  };
+
   return (
     <PageLayout>
       <PageHeader
@@ -13,7 +24,7 @@ const Budget = () => {
       />
       
       <div className="grid gap-6">
-        <BudgetForm />
+        <BudgetForm onCancel={handleCancel} onSave={handleSave} />
       </div>
     </PageLayout>
   );
