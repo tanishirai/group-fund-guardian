@@ -13,9 +13,86 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { groups, members } from "@/lib/data";
 import PageLayout from "@/components/layout/PageLayout";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { toast } from "@/hooks/use-toast";
 
 const Groups = () => {
   const [selectedGroup, setSelectedGroup] = useState(groups[0]);
+  const [localGroups, setLocalGroups] = useState(groups);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<string | null>(null);
+
+  const handleCreateGroup = () => {
+    if (!newGroupName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a group name",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const newGroup = {
+      id: `group-${localGroups.length + 1}`,
+      name: newGroupName,
+      members: ["You"],
+      expenses: [],
+      balance: 0
+    };
+
+    const updatedGroups = [...localGroups, newGroup];
+    setLocalGroups(updatedGroups);
+    setSelectedGroup(newGroup);
+    setCreateDialogOpen(false);
+    setNewGroupName("");
+    
+    toast({
+      title: "Success",
+      description: `Group "${newGroupName}" created`,
+    });
+  };
+
+  const handleInviteMember = () => {
+    if (!inviteEmail.trim() || !inviteEmail.includes("@")) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid email address",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // In a real app, this would send an invitation email
+    // For now, we'll just show a success message
+    setInviteDialogOpen(false);
+    setInviteEmail("");
+    
+    toast({
+      title: "Invitation sent",
+      description: `Invitation sent to ${inviteEmail}`,
+    });
+  };
+
+  const handleRemoveMember = () => {
+    if (!memberToRemove) {
+      return;
+    }
+
+    // In a real app, this would remove the member from the database
+    // For now, we'll just show a success message
+    setRemoveDialogOpen(false);
+    setMemberToRemove(null);
+    
+    toast({
+      title: "Member removed",
+      description: `${memberToRemove} has been removed from ${selectedGroup.name}`,
+    });
+  };
 
   return (
     <PageLayout>
@@ -25,6 +102,7 @@ const Groups = () => {
       >
         <Button 
           className="bg-primary text-white hover:bg-primary/90 transition-colors shadow-button"
+          onClick={() => setCreateDialogOpen(true)}
         >
           <Plus className="mr-2 h-4 w-4" /> Create Group
         </Button>
@@ -39,7 +117,7 @@ const Groups = () => {
           </h3>
           
           <div className="space-y-3">
-            {groups.map((group) => (
+            {localGroups.map((group) => (
               <div 
                 key={group.id}
                 onClick={() => setSelectedGroup(group)}
@@ -84,10 +162,10 @@ const Groups = () => {
               <p className="text-muted-foreground">{selectedGroup.members.length} members • ${selectedGroup.balance.toFixed(2)} total</p>
             </div>
             <div className="flex space-x-2">
-              <Button size="sm" variant="outline">
+              <Button size="sm" variant="outline" onClick={() => setInviteDialogOpen(true)}>
                 <UserPlus className="h-4 w-4 mr-1" /> Invite
               </Button>
-              <Button size="sm" variant="outline" className="text-destructive hover:text-destructive">
+              <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => setRemoveDialogOpen(true)}>
                 <UserMinus className="h-4 w-4 mr-1" /> Remove
               </Button>
             </div>
@@ -106,7 +184,7 @@ const Groups = () => {
             <div className="bg-secondary p-4 rounded-lg">
               <p className="text-sm text-muted-foreground">Average per Person</p>
               <p className="text-xl font-semibold mt-1">
-                ${(selectedGroup.balance / selectedGroup.members.length).toFixed(2)}
+                ${selectedGroup.members.length > 0 ? (selectedGroup.balance / selectedGroup.members.length).toFixed(2) : "0.00"}
               </p>
             </div>
           </div>
@@ -164,8 +242,93 @@ const Groups = () => {
           </div>
         </Card>
       </div>
+
+      {/* Create Group Dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Group</DialogTitle>
+            <DialogDescription>
+              Enter a name for your new expense sharing group.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              placeholder="Group Name"
+              value={newGroupName}
+              onChange={(e) => setNewGroupName(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateGroup}>Create Group</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invite Member Dialog */}
+      <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Invite Member</DialogTitle>
+            <DialogDescription>
+              Enter the email address of the person you'd like to invite to "{selectedGroup.name}".
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              placeholder="Email Address"
+              type="email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInviteDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleInviteMember}>Send Invitation</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Remove Member Dialog */}
+      <Dialog open={removeDialogOpen} onOpenChange={setRemoveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove Member</DialogTitle>
+            <DialogDescription>
+              Select a member to remove from "{selectedGroup.name}".
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            {members.filter(member => 
+              selectedGroup.members.includes(member.name)
+            ).map(member => (
+              <div 
+                key={member.id}
+                onClick={() => setMemberToRemove(member.name)}
+                className={cn(
+                  "p-3 rounded-md border cursor-pointer flex items-center",
+                  memberToRemove === member.name ? "border-primary bg-primary/10" : "border-input"
+                )}
+              >
+                <div className="flex-1">
+                  <div className="font-medium">{member.name}</div>
+                  <div className="text-sm text-muted-foreground">{member.email}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRemoveDialogOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleRemoveMember} disabled={!memberToRemove}>
+              Remove Member
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageLayout>
   );
 };
 
 export default Groups;
+
