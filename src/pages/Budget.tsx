@@ -4,23 +4,10 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import PageLayout from "@/components/layout/PageLayout";
 import BudgetForm from "@/components/BudgetForm";
 import BudgetProgressView from "@/components/BudgetProgressView";
-import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Budget = () => {
   const [activeTab, setActiveTab] = useState("view");
-  const [isEditing, setIsEditing] = useState(false);
-
-  const handleCancel = () => {
-    setIsEditing(false);
-    setActiveTab("view");
-  };
-
-  const handleSave = (values: any) => {
-    console.log("Budget values saved:", values);
-    setIsEditing(false);
-    setActiveTab("view");
-  };
 
   return (
     <PageLayout>
@@ -40,7 +27,7 @@ const Budget = () => {
         </TabsContent>
         
         <TabsContent value="edit">
-          <BudgetForm onCancel={handleCancel} onSave={handleSave} />
+          <BudgetForm />
         </TabsContent>
       </Tabs>
     </PageLayout>

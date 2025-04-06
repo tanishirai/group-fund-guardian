@@ -22,6 +22,8 @@ const Groups = () => {
   const [selectedGroup, setSelectedGroup] = useState(groups[0]);
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
+  // Add state to trigger re-render when groups change
+  const [groupsList, setGroupsList] = useState([...groups]);
 
   const handleCreateGroup = () => {
     if (!newGroupName.trim()) {
@@ -29,26 +31,34 @@ const Groups = () => {
       return;
     }
 
-    // In a real app, this would be a call to a database
-    const newGroup = {
-      id: `g${groups.length + 1}`,
-      name: newGroupName,
-      members: [],
-      balance: 0,
-      expenses: []
-    };
+    try {
+      // In a real app, this would be a call to a database
+      const newGroup = {
+        id: `g${groups.length + 1}`,
+        name: newGroupName,
+        members: [],
+        balance: 0,
+        expenses: []
+      };
 
-    // Add new group to the array (this would be persisted in a database in a real app)
-    groups.push(newGroup);
-    
-    // Reset state and close dialog
-    setNewGroupName("");
-    setIsCreateGroupOpen(false);
-    
-    // Select the newly created group
-    setSelectedGroup(newGroup);
-    
-    toast.success(`Group "${newGroupName}" created successfully`);
+      // Add new group to the array (this would be persisted in a database in a real app)
+      groups.push(newGroup);
+      
+      // Update state to trigger re-render
+      setGroupsList([...groups]);
+      
+      // Reset state and close dialog
+      setNewGroupName("");
+      setIsCreateGroupOpen(false);
+      
+      // Select the newly created group
+      setSelectedGroup(newGroup);
+      
+      toast.success(`Group "${newGroupName}" created successfully`);
+    } catch (error) {
+      console.error("Error creating group:", error);
+      toast.error("Failed to create group. Please try again.");
+    }
   };
 
   return (
@@ -74,7 +84,7 @@ const Groups = () => {
           </h3>
           
           <div className="space-y-3">
-            {groups.map((group) => (
+            {groupsList.map((group) => (
               <div 
                 key={group.id}
                 onClick={() => setSelectedGroup(group)}
