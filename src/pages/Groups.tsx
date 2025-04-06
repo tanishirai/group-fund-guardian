@@ -13,53 +13,9 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { groups, members } from "@/lib/data";
 import PageLayout from "@/components/layout/PageLayout";
 import { cn } from "@/lib/utils";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
 
 const Groups = () => {
   const [selectedGroup, setSelectedGroup] = useState(groups[0]);
-  const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
-  const [newGroupName, setNewGroupName] = useState("");
-  // Add state to trigger re-render when groups change
-  const [groupsList, setGroupsList] = useState([...groups]);
-
-  const handleCreateGroup = () => {
-    if (!newGroupName.trim()) {
-      toast.error("Please enter a group name");
-      return;
-    }
-
-    try {
-      // In a real app, this would be a call to a database
-      const newGroup = {
-        id: `g${groups.length + 1}`,
-        name: newGroupName,
-        members: [],
-        balance: 0,
-        expenses: []
-      };
-
-      // Add new group to the array (this would be persisted in a database in a real app)
-      groups.push(newGroup);
-      
-      // Update state to trigger re-render
-      setGroupsList([...groups]);
-      
-      // Reset state and close dialog
-      setNewGroupName("");
-      setIsCreateGroupOpen(false);
-      
-      // Select the newly created group
-      setSelectedGroup(newGroup);
-      
-      toast.success(`Group "${newGroupName}" created successfully`);
-    } catch (error) {
-      console.error("Error creating group:", error);
-      toast.error("Failed to create group. Please try again.");
-    }
-  };
 
   return (
     <PageLayout>
@@ -69,7 +25,6 @@ const Groups = () => {
       >
         <Button 
           className="bg-primary text-white hover:bg-primary/90 transition-colors shadow-button"
-          onClick={() => setIsCreateGroupOpen(true)}
         >
           <Plus className="mr-2 h-4 w-4" /> Create Group
         </Button>
@@ -84,7 +39,7 @@ const Groups = () => {
           </h3>
           
           <div className="space-y-3">
-            {groupsList.map((group) => (
+            {groups.map((group) => (
               <div 
                 key={group.id}
                 onClick={() => setSelectedGroup(group)}
@@ -151,9 +106,7 @@ const Groups = () => {
             <div className="bg-secondary p-4 rounded-lg">
               <p className="text-sm text-muted-foreground">Average per Person</p>
               <p className="text-xl font-semibold mt-1">
-                ${selectedGroup.members.length > 0 
-                  ? (selectedGroup.balance / selectedGroup.members.length).toFixed(2) 
-                  : "0.00"}
+                ${(selectedGroup.balance / selectedGroup.members.length).toFixed(2)}
               </p>
             </div>
           </div>
@@ -211,39 +164,6 @@ const Groups = () => {
           </div>
         </Card>
       </div>
-
-      {/* Create Group Dialog */}
-      <Dialog open={isCreateGroupOpen} onOpenChange={setIsCreateGroupOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Create New Group</DialogTitle>
-            <DialogDescription>
-              Enter a name for your new expense sharing group.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="group-name">Group Name</Label>
-              <Input 
-                id="group-name" 
-                placeholder="e.g., Roommates, Trip to Paris, Family" 
-                value={newGroupName}
-                onChange={(e) => setNewGroupName(e.target.value)}
-              />
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateGroupOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreateGroup}>
-              Create Group
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </PageLayout>
   );
 };

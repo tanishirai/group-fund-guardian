@@ -4,29 +4,21 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import PageLayout from "@/components/layout/PageLayout";
 import BudgetForm from "@/components/BudgetForm";
 import BudgetProgressView from "@/components/BudgetProgressView";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
-import { z } from "zod";
-import { budgets } from "@/lib/data";
-
-// Define the schema type to match what BudgetForm expects
-type BudgetFormValues = {
-  monthly: number;
-  categories: Record<string, { allocated: number }>;
-};
 
 const Budget = () => {
   const [activeTab, setActiveTab] = useState("view");
+  const [isEditing, setIsEditing] = useState(false);
 
-  // Add handlers for the BudgetForm
   const handleCancel = () => {
+    setIsEditing(false);
     setActiveTab("view");
   };
 
-  const handleSave = (values: BudgetFormValues) => {
-    // Here you would typically save to a database
-    // For now we'll just show a toast and switch tabs
-    toast.success("Budget updated successfully");
+  const handleSave = (values: any) => {
+    console.log("Budget values saved:", values);
+    setIsEditing(false);
     setActiveTab("view");
   };
 
@@ -48,10 +40,7 @@ const Budget = () => {
         </TabsContent>
         
         <TabsContent value="edit">
-          <BudgetForm 
-            onCancel={handleCancel} 
-            onSave={handleSave} 
-          />
+          <BudgetForm onCancel={handleCancel} onSave={handleSave} />
         </TabsContent>
       </Tabs>
     </PageLayout>
