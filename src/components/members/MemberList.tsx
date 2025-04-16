@@ -1,44 +1,72 @@
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { members } from "@/lib/data";
 import { Search, UserPlus } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
+
+// ✅ Firebase Firestore imports (USED BELOW)
+import { db } from "@/firebase";
+import { collection, addDoc, getDocs } from "firebase/firestore";
 
 export function MemberList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [newMemberDialog, setNewMemberDialog] = useState(false);
   const [newMemberName, setNewMemberName] = useState("");
   const [newMemberEmail, setNewMemberEmail] = useState("");
-  const [localMembers, setLocalMembers] = useState(members);
+  const [localMembers, setLocalMembers] = useState<any[]>([]);
+
+  // ✅ Fetch members from Firestore when component loads
+  useEffect(() => {
+    const fetchMembers = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "members"));
+        const membersData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setLocalMembers(membersData);
+      } catch (error) {
+        console.error("Error fetching members:", error);
+      }
+    };
+
+    fetchMembers();
+  }, []);
 
   // Get initials for avatar fallback
   const getInitials = (name: string) => {
     return name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
       .toUpperCase();
   };
 
-  const filteredMembers = localMembers.filter(member => 
+  const filteredMembers = localMembers.filter((member) =>
     member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     member.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleAddMember = () => {
+  // ✅ Add member to Firestore
+  const handleAddMember = async () => {
     if (!newMemberName.trim()) {
       toast({
         title: "Error",
@@ -48,7 +76,7 @@ export function MemberList() {
       return;
     }
 
-    if (!newMemberEmail.trim() || !newMemberEmail.includes('@')) {
+    if (!newMemberEmail.trim() || !newMemberEmail.includes("@")) {
       toast({
         title: "Error",
         description: "Please enter a valid email address",
@@ -57,25 +85,40 @@ export function MemberList() {
       return;
     }
 
-    // In a real app, this would send data to a backend/database
-    // For now, we'll just add to our local state
-    const newMember = {
-      id: `member-${localMembers.length + 1}`,
-      name: newMemberName,
-      email: newMemberEmail,
-      contributed: 0,
-      owed: 0
-    };
+    try {
+      const docRef = await addDoc(collection(db, "members"), {
+        name: newMemberName,
+        email: newMemberEmail,
+        contributed: 0,
+        owed: 0,
+        createdAt: new Date()
+      });
 
-    setLocalMembers([...localMembers, newMember]);
-    setNewMemberDialog(false);
-    setNewMemberName("");
-    setNewMemberEmail("");
-    
-    toast({
-      title: "Success",
-      description: `${newMemberName} has been added`,
-    });
+      const newMember = {
+        id: docRef.id,
+        name: newMemberName,
+        email: newMemberEmail,
+        contributed: 0,
+        owed: 0
+      };
+
+      setLocalMembers([...localMembers, newMember]);
+      setNewMemberDialog(false);
+      setNewMemberName("");
+      setNewMemberEmail("");
+
+      toast({
+        title: "Success",
+        description: `${newMemberName} has been added`,
+      });
+    } catch (error) {
+      console.error("Error adding member:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add member",
+        variant: "destructive"
+      });
+    }
   };
 
   return (

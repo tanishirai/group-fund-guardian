@@ -22,7 +22,7 @@ const navigation = [
   { name: "Expenses", href: "/expenses", icon: Receipt },
   { name: "Budget", href: "/budget", icon: PieChart },
   { name: "Debt Tracker", href: "/debt-tracker", icon: ArrowLeftRight },
-  { name: "Notifications", href: "/notifications", icon: Bell },
+  // { name: "Notifications", href: "/notifications", icon: Bell },
 ];
 
 export default function SidebarNav() {

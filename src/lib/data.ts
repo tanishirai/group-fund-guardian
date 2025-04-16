@@ -203,33 +203,33 @@ export const budgets = {
   }
 };
 
-export const notifications = [
-  {
-    id: "n1",
-    title: "New expense added",
-    description: "Jane added a new expense 'Dinner at Italian Restaurant'",
-    date: "June 12, 2023",
-    read: false
-  },
-  {
-    id: "n2",
-    title: "Settlement request",
-    description: "Jane requested a settlement of $450.20",
-    date: "June 10, 2023",
-    read: false
-  },
-  {
-    id: "n3",
-    title: "Budget alert",
-    description: "You've reached 90% of your Food budget for this month",
-    date: "June 8, 2023",
-    read: true
-  },
-  {
-    id: "n4",
-    title: "New member",
-    description: "Sarah joined the 'Road Trip' group",
-    date: "June 5, 2023",
-    read: true
-  }
-];
+// export const notifications = [
+//   {
+//     id: "n1",
+//     title: "New expense added",
+//     description: "Jane added a new expense 'Dinner at Italian Restaurant'",
+//     date: "June 12, 2023",
+//     read: false
+//   },
+//   {
+//     id: "n2",
+//     title: "Settlement request",
+//     description: "Jane requested a settlement of $450.20",
+//     date: "June 10, 2023",
+//     read: false
+//   },
+//   {
+//     id: "n3",
+//     title: "Budget alert",
+//     description: "You've reached 90% of your Food budget for this month",
+//     date: "June 8, 2023",
+//     read: true
+//   },
+//   {
+//     id: "n4",
+//     title: "New member",
+//     description: "Sarah joined the 'Road Trip' group",
+//     date: "June 5, 2023",
+//     read: true
+//   }
+// ];

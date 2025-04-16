@@ -11,7 +11,7 @@ import Members from "./pages/Members";
 import Expenses from "./pages/Expenses";
 import Budget from "./pages/Budget";
 import DebtTracker from "./pages/DebtTracker";
-import Notifications from "./pages/Notifications";
+// import Notifications from "./pages/Notifications";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
@@ -32,7 +32,7 @@ const App = () => (
             <Route path="/expenses" element={<Expenses />} />
             <Route path="/budget" element={<Budget />} />
             <Route path="/debt-tracker" element={<DebtTracker />} />
-            <Route path="/notifications" element={<Notifications />} />
+            {/* <Route path="/notifications" element={<Notifications />} /> */}
             <Route path="/profile" element={<Profile />} />
             <Route path="/profile/:memberId" element={<Profile />} />
             <Route path="*" element={<NotFound />} />
