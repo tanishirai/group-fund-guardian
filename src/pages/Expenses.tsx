@@ -22,7 +22,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { TransactionCard, Transaction } from "@/components/ui/TransactionCard";
-import { transactions, groups } from "@/lib/data";
+import { transactions as initialTransactions, groups } from "@/lib/data";
 import PageLayout from "@/components/layout/PageLayout";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -33,8 +33,11 @@ import { useLocation, useNavigate } from "react-router-dom";
 const Expenses = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
-  const [selectedExpense, setSelectedExpense] = useState<Transaction | null>(transactions[0]);
+  const [selectedExpense, setSelectedExpense] = useState<Transaction | null>(initialTransactions[0]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [transactions, setTransactions] = useState(initialTransactions);
   const [newExpense, setNewExpense] = useState({
     title: "",
     amount: "",
@@ -42,6 +45,15 @@ const Expenses = () => {
     paidBy: "",
     splitType: "equal",
     date: new Date().toISOString().split('T')[0]
+  });
+  const [editingExpense, setEditingExpense] = useState({
+    id: "",
+    title: "",
+    amount: "",
+    category: "",
+    paidBy: "",
+    splitType: "equal",
+    date: ""
   });
   const { toast } = useToast();
   const location = useLocation();
@@ -82,6 +94,14 @@ const Expenses = () => {
     });
   };
 
+  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setEditingExpense({
+      ...editingExpense,
+      [name]: value
+    });
+  };
+
   const handleAddExpense = () => {
     // Validate form
     if (!newExpense.title || !newExpense.amount || !newExpense.category || !newExpense.paidBy) {
@@ -105,7 +125,26 @@ const Expenses = () => {
     }
 
     // In a real app, this would be done through an API call
-    // For now, we'll just show a success toast
+    // For now, we'll create a new transaction and add it to our state
+    const newTransaction: Transaction = {
+      id: `tr${Date.now()}`,
+      title: newExpense.title,
+      amount: amount,
+      category: newExpense.category,
+      paidBy: newExpense.paidBy,
+      date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      split: {
+        type: newExpense.splitType,
+        details: allMembers.reduce((acc, member) => {
+          acc[member] = amount / allMembers.length;
+          return acc;
+        }, {} as { [key: string]: number })
+      }
+    };
+
+    setTransactions([newTransaction, ...transactions]);
+    setSelectedExpense(newTransaction);
+    
     toast({
       title: "Expense added",
       description: `${newExpense.title} ($${amount.toFixed(2)}) has been added successfully.`,
@@ -121,6 +160,89 @@ const Expenses = () => {
       date: new Date().toISOString().split('T')[0]
     });
     setIsDialogOpen(false);
+  };
+
+  const handleEditExpense = () => {
+    // Validate form
+    if (!editingExpense.title || !editingExpense.amount || !editingExpense.category || !editingExpense.paidBy) {
+      toast({
+        title: "Missing information",
+        description: "Please fill all required fields.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Create updated expense object
+    const amount = parseFloat(editingExpense.amount.toString());
+    if (isNaN(amount)) {
+      toast({
+        title: "Invalid amount",
+        description: "Please enter a valid amount.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Update the transaction in our state
+    const updatedTransactions = transactions.map(transaction => {
+      if (transaction.id === editingExpense.id) {
+        return {
+          ...transaction,
+          title: editingExpense.title,
+          amount: amount,
+          category: editingExpense.category,
+          paidBy: editingExpense.paidBy,
+          date: editingExpense.date
+        };
+      }
+      return transaction;
+    });
+
+    setTransactions(updatedTransactions);
+    const updatedExpense = updatedTransactions.find(t => t.id === editingExpense.id);
+    setSelectedExpense(updatedExpense || null);
+    
+    toast({
+      title: "Expense updated",
+      description: `${editingExpense.title} has been updated successfully.`,
+    });
+
+    // Close the dialog
+    setIsEditDialogOpen(false);
+  };
+
+  const handleDeleteExpense = () => {
+    if (!selectedExpense) return;
+    
+    // Filter out the expense to delete
+    const updatedTransactions = transactions.filter(transaction => transaction.id !== selectedExpense.id);
+    
+    setTransactions(updatedTransactions);
+    setSelectedExpense(updatedTransactions[0] || null);
+    
+    toast({
+      title: "Expense deleted",
+      description: `${selectedExpense.title} has been deleted.`,
+    });
+    
+    // Close the dialog
+    setIsDeleteDialogOpen(false);
+  };
+
+  const openEditDialog = () => {
+    if (selectedExpense) {
+      setEditingExpense({
+        id: selectedExpense.id,
+        title: selectedExpense.title,
+        amount: selectedExpense.amount.toString(),
+        category: selectedExpense.category,
+        paidBy: selectedExpense.paidBy,
+        splitType: selectedExpense.split?.type || "equal",
+        date: selectedExpense.date
+      });
+      setIsEditDialogOpen(true);
+    }
   };
 
   return (
@@ -281,14 +403,15 @@ const Expenses = () => {
               </div>
 
               <div className="p-6 bg-secondary/50 flex justify-end space-x-3">
-                <Button variant="outline">Edit Expense</Button>
-                <Button variant="destructive">Delete</Button>
+                <Button variant="outline" onClick={openEditDialog}>Edit Expense</Button>
+                <Button variant="destructive" onClick={() => setIsDeleteDialogOpen(true)}>Delete</Button>
               </div>
             </Card>
           </div>
         )}
       </div>
 
+      {/* Add Expense Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[550px]">
           <DialogHeader>
@@ -392,6 +515,119 @@ const Expenses = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
             <Button type="submit" onClick={handleAddExpense}>Add Expense</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Expense Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[550px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Edit Expense</DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-1 gap-2">
+              <Label htmlFor="edit-title">Title</Label>
+              <Input
+                id="edit-title"
+                name="title"
+                placeholder="e.g., Dinner at Restaurant"
+                value={editingExpense.title}
+                onChange={handleEditInputChange}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-amount">Amount ($)</Label>
+                <Input
+                  id="edit-amount"
+                  name="amount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={editingExpense.amount}
+                  onChange={handleEditInputChange}
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="edit-date">Date</Label>
+                <Input
+                  id="edit-date"
+                  name="date"
+                  type="date"
+                  value={editingExpense.date.split(',')[1]?.trim() || new Date().toISOString().split('T')[0]}
+                  onChange={handleEditInputChange}
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-category">Category</Label>
+                <Select name="category" value={editingExpense.category} onValueChange={(value) => {
+                  setEditingExpense({...editingExpense, category: value});
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="edit-paidBy">Paid By</Label>
+                <Select name="paidBy" value={editingExpense.paidBy} onValueChange={(value) => {
+                  setEditingExpense({...editingExpense, paidBy: value});
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select person" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allMembers.map((member) => (
+                      <SelectItem key={member} value={member}>
+                        {member}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+            <Button type="submit" onClick={handleEditExpense}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Confirm Delete</DialogTitle>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <p>Are you sure you want to delete this expense?</p>
+            <p className="font-medium mt-2">{selectedExpense?.title} - ${selectedExpense?.amount.toFixed(2)}</p>
+            <p className="text-sm text-muted-foreground mt-1">This action cannot be undone.</p>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteExpense}>Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
