@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { 
   ReceiptText, 
@@ -22,7 +21,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { TransactionCard, Transaction } from "@/components/ui/TransactionCard";
-import { transactions as initialTransactions, groups } from "@/lib/data";
+import { groups } from "@/lib/data";
 import PageLayout from "@/components/layout/PageLayout";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -30,14 +29,30 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useNavigate } from "react-router-dom";
 
+// Firebase imports
+import { db } from "@/firebase";
+import { 
+  collection, 
+  addDoc, 
+  doc, 
+  updateDoc, 
+  deleteDoc,
+  onSnapshot,
+  query,
+  orderBy
+} from "firebase/firestore";
+
 const Expenses = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
-  const [selectedExpense, setSelectedExpense] = useState<Transaction | null>(initialTransactions[0]);
+  const [selectedExpense, setSelectedExpense] = useState<Transaction | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [transactions, setTransactions] = useState(initialTransactions);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
   const [newExpense, setNewExpense] = useState({
     title: "",
     amount: "",
@@ -46,6 +61,7 @@ const Expenses = () => {
     splitType: "equal",
     date: new Date().toISOString().split('T')[0]
   });
+  
   const [editingExpense, setEditingExpense] = useState({
     id: "",
     title: "",
@@ -53,11 +69,18 @@ const Expenses = () => {
     category: "",
     paidBy: "",
     splitType: "equal",
-    date: ""
+    date: "",
+    splitDetails: {} as { [key: string]: number }
   });
+
+  const [customSplitDetails, setCustomSplitDetails] = useState<{ [key: string]: number }>({});
+
   const { toast } = useToast();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Get all members from all groups
+  const allMembers = Array.from(new Set(groups.flatMap(group => group.members)));
 
   // Check URL parameters to see if we should open the dialog
   useEffect(() => {
@@ -69,11 +92,55 @@ const Expenses = () => {
     }
   }, [location, navigate]);
 
-  // Get unique categories
-  const categories = Array.from(new Set(transactions.map((t) => t.category)));
-  
-  // Get all members from all groups
-  const allMembers = Array.from(new Set(groups.flatMap(group => group.members)));
+  // Fetch expenses from Firebase
+  useEffect(() => {
+    setIsLoading(true);
+    const expensesRef = collection(db, "expenses");
+    const q = query(expensesRef, orderBy("date", "desc"));
+    
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const expensesData: Transaction[] = [];
+      const categoriesSet = new Set<string>();
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const category = data.category || "Other";
+        
+        const expense: Transaction = {
+          id: doc.id,
+          title: data.title,
+          amount: data.amount,
+          category: category,
+          paidBy: data.paidBy,
+          date: new Date(data.date).toLocaleDateString('en-US', { 
+            month: 'long', 
+            day: 'numeric', 
+            year: 'numeric' 
+          }),
+          split: {
+            type: data.splitType,
+            details: data.splitDetails || allMembers.reduce((acc, member) => {
+              acc[member] = data.amount / allMembers.length;
+              return acc;
+            }, {} as { [key: string]: number })
+          }
+        };
+        expensesData.push(expense);
+        categoriesSet.add(category);
+      });
+      
+      setTransactions(expensesData);
+      setCategories(Array.from(categoriesSet));
+      setIsLoading(false);
+      
+      // Set the first expense as selected if available
+      if (expensesData.length > 0 && !selectedExpense) {
+        setSelectedExpense(expensesData[0]);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Filter transactions based on search and filters
   const filteredTransactions = transactions.filter((transaction) => {
@@ -102,7 +169,7 @@ const Expenses = () => {
     });
   };
 
-  const handleAddExpense = () => {
+  const handleAddExpense = async () => {
     // Validate form
     if (!newExpense.title || !newExpense.amount || !newExpense.category || !newExpense.paidBy) {
       toast({
@@ -124,45 +191,59 @@ const Expenses = () => {
       return;
     }
 
-    // In a real app, this would be done through an API call
-    // For now, we'll create a new transaction and add it to our state
-    const newTransaction: Transaction = {
-      id: `tr${Date.now()}`,
-      title: newExpense.title,
-      amount: amount,
-      category: newExpense.category,
-      paidBy: newExpense.paidBy,
-      date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-      split: {
-        type: newExpense.splitType,
-        details: allMembers.reduce((acc, member) => {
-          acc[member] = amount / allMembers.length;
-          return acc;
-        }, {} as { [key: string]: number })
+    try {
+      // Calculate split details based on split type
+      const splitDetails = newExpense.splitType === "equal" 
+        ? allMembers.reduce((acc, member) => {
+            acc[member] = amount / allMembers.length;
+            return acc;
+          }, {} as { [key: string]: number })
+        : customSplitDetails;
+
+      // Add to Firestore
+      const docRef = await addDoc(collection(db, "expenses"), {
+        title: newExpense.title,
+        amount: amount,
+        category: newExpense.category,
+        paidBy: newExpense.paidBy,
+        splitType: newExpense.splitType,
+        date: newExpense.date,
+        splitDetails: splitDetails,
+        createdAt: new Date().toISOString()
+      });
+
+      // Update categories list if this is a new category
+      if (!categories.includes(newExpense.category)) {
+        setCategories([...categories, newExpense.category]);
       }
-    };
 
-    setTransactions([newTransaction, ...transactions]);
-    setSelectedExpense(newTransaction);
-    
-    toast({
-      title: "Expense added",
-      description: `${newExpense.title} ($${amount.toFixed(2)}) has been added successfully.`,
-    });
+      toast({
+        title: "Expense added",
+        description: `${newExpense.title} ($${amount.toFixed(2)}) has been added successfully.`,
+      });
 
-    // Reset form and close dialog
-    setNewExpense({
-      title: "",
-      amount: "",
-      category: "",
-      paidBy: "",
-      splitType: "equal",
-      date: new Date().toISOString().split('T')[0]
-    });
-    setIsDialogOpen(false);
+      // Reset form and close dialog
+      setNewExpense({
+        title: "",
+        amount: "",
+        category: "",
+        paidBy: "",
+        splitType: "equal",
+        date: new Date().toISOString().split('T')[0]
+      });
+      setCustomSplitDetails({});
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error("Error adding expense: ", error);
+      toast({
+        title: "Error",
+        description: "There was an error adding the expense.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleEditExpense = () => {
+  const handleEditExpense = async () => {
     // Validate form
     if (!editingExpense.title || !editingExpense.amount || !editingExpense.category || !editingExpense.paidBy) {
       toast({
@@ -184,50 +265,62 @@ const Expenses = () => {
       return;
     }
 
-    // Update the transaction in our state
-    const updatedTransactions = transactions.map(transaction => {
-      if (transaction.id === editingExpense.id) {
-        return {
-          ...transaction,
-          title: editingExpense.title,
-          amount: amount,
-          category: editingExpense.category,
-          paidBy: editingExpense.paidBy,
-          date: editingExpense.date
-        };
+    try {
+      // Update in Firestore
+      const expenseRef = doc(db, "expenses", editingExpense.id);
+      await updateDoc(expenseRef, {
+        title: editingExpense.title,
+        amount: amount,
+        category: editingExpense.category,
+        paidBy: editingExpense.paidBy,
+        date: editingExpense.date,
+        splitDetails: editingExpense.splitDetails
+      });
+
+      // Update categories list if this is a new category
+      if (!categories.includes(editingExpense.category)) {
+        setCategories([...categories, editingExpense.category]);
       }
-      return transaction;
-    });
 
-    setTransactions(updatedTransactions);
-    const updatedExpense = updatedTransactions.find(t => t.id === editingExpense.id);
-    setSelectedExpense(updatedExpense || null);
-    
-    toast({
-      title: "Expense updated",
-      description: `${editingExpense.title} has been updated successfully.`,
-    });
+      toast({
+        title: "Expense updated",
+        description: `${editingExpense.title} has been updated successfully.`,
+      });
 
-    // Close the dialog
-    setIsEditDialogOpen(false);
+      // Close the dialog
+      setIsEditDialogOpen(false);
+    } catch (error) {
+      console.error("Error updating expense: ", error);
+      toast({
+        title: "Error",
+        description: "There was an error updating the expense.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleDeleteExpense = () => {
+  const handleDeleteExpense = async () => {
     if (!selectedExpense) return;
     
-    // Filter out the expense to delete
-    const updatedTransactions = transactions.filter(transaction => transaction.id !== selectedExpense.id);
-    
-    setTransactions(updatedTransactions);
-    setSelectedExpense(updatedTransactions[0] || null);
-    
-    toast({
-      title: "Expense deleted",
-      description: `${selectedExpense.title} has been deleted.`,
-    });
-    
-    // Close the dialog
-    setIsDeleteDialogOpen(false);
+    try {
+      // Delete from Firestore
+      await deleteDoc(doc(db, "expenses", selectedExpense.id));
+      
+      toast({
+        title: "Expense deleted",
+        description: `${selectedExpense.title} has been deleted.`,
+      });
+      
+      // Close the dialog
+      setIsDeleteDialogOpen(false);
+    } catch (error) {
+      console.error("Error deleting expense: ", error);
+      toast({
+        title: "Error",
+        description: "There was an error deleting the expense.",
+        variant: "destructive"
+      });
+    }
   };
 
   const openEditDialog = () => {
@@ -239,11 +332,22 @@ const Expenses = () => {
         category: selectedExpense.category,
         paidBy: selectedExpense.paidBy,
         splitType: selectedExpense.split?.type || "equal",
-        date: selectedExpense.date
+        date: selectedExpense.date,
+        splitDetails: selectedExpense.split?.details || {}
       });
       setIsEditDialogOpen(true);
     }
   };
+
+  if (isLoading) {
+    return (
+      <PageLayout>
+        <div className="flex justify-center items-center h-64">
+          <p>Loading expenses...</p>
+        </div>
+      </PageLayout>
+    );
+  }
 
   return (
     <PageLayout>
@@ -261,7 +365,7 @@ const Expenses = () => {
 
       {/* Search and Filters */}
       <Card className="p-4 mb-6 border shadow-card animate-slide-in">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-9 gap-4">
           <div className="col-span-1 md:col-span-6">
             <div className="relative">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -291,11 +395,11 @@ const Expenses = () => {
               </SelectContent>
             </Select>
           </div>
-          <div className="col-span-1 md:col-span-3">
+          {/* <div className="col-span-1 md:col-span-3">
             <Button variant="outline" className="w-full">
               <Filter className="mr-2 h-4 w-4" /> More Filters
             </Button>
-          </div>
+          </div> */}
         </div>
       </Card>
 
@@ -331,7 +435,7 @@ const Expenses = () => {
           )}
         </div>
 
-        {selectedExpense && (
+        {selectedExpense ? (
           <div className="col-span-1 lg:col-span-2 animate-slide-in">
             <Card className="border shadow-card overflow-hidden">
               <div className="p-6 border-b">
@@ -408,6 +512,12 @@ const Expenses = () => {
               </div>
             </Card>
           </div>
+        ) : (
+          <div className="col-span-1 lg:col-span-2 flex items-center justify-center">
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground">Select an expense to view details</p>
+            </Card>
+          </div>
         )}
       </div>
 
@@ -460,21 +570,21 @@ const Expenses = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="category">Category</Label>
-                <Select name="category" value={newExpense.category} onValueChange={(value) => {
-                  setNewExpense({...newExpense, category: value});
-                }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
+                <div className="flex gap-2">
+                  <Input
+                    id="category"
+                    name="category"
+                    placeholder="e.g., Food, Transportation"
+                    value={newExpense.category}
+                    onChange={handleInputChange}
+                    // list="category-suggestions"
+                  />
+                  {/* <datalist id="category-suggestions">
                     {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
+                      <option key={category} value={category} />
                     ))}
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
+                  </datalist> */}
+                </div>
               </div>
               
               <div className="grid gap-2">
@@ -510,6 +620,33 @@ const Expenses = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            {newExpense.splitType === "custom" && (
+              <div className="grid gap-2">
+                <Label>Custom Split Details</Label>
+                <div className="max-h-48 overflow-y-auto">
+                  {allMembers.map((member) => (
+                    <div key={member} className="flex items-center justify-between">
+                      <span>{member}</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={customSplitDetails[member] || 0}
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value);
+                          setCustomSplitDetails({
+                            ...customSplitDetails,
+                            [member]: isNaN(value) ? 0 : value
+                          });
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           
           <DialogFooter>
@@ -568,21 +705,21 @@ const Expenses = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="edit-category">Category</Label>
-                <Select name="category" value={editingExpense.category} onValueChange={(value) => {
-                  setEditingExpense({...editingExpense, category: value});
-                }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
+                <div className="flex gap-2">
+                  <Input
+                    id="edit-category"
+                    name="category"
+                    placeholder="e.g., Food, Transportation"
+                    value={editingExpense.category}
+                    onChange={handleEditInputChange}
+                    list="edit-category-suggestions"
+                  />
+                  <datalist id="edit-category-suggestions">
                     {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
+                      <option key={category} value={category} />
                     ))}
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
+                  </datalist>
+                </div>
               </div>
               
               <div className="grid gap-2">
@@ -603,6 +740,36 @@ const Expenses = () => {
                 </Select>
               </div>
             </div>
+
+            {editingExpense.splitType === "custom" && (
+              <div className="grid gap-2">
+                <Label>Custom Split Details</Label>
+                <div className="max-h-48 overflow-y-auto">
+                  {allMembers.map((member) => (
+                    <div key={member} className="flex items-center justify-between">
+                      <span>{member}</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={editingExpense.splitDetails[member] || 0}
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value);
+                          setEditingExpense({
+                            ...editingExpense,
+                            splitDetails: {
+                              ...editingExpense.splitDetails,
+                              [member]: isNaN(value) ? 0 : value
+                            }
+                          });
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           
           <DialogFooter>
