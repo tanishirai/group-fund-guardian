@@ -1,154 +1,263 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { db } from "@/firebase";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  updateDoc,
+  arrayUnion,
+  arrayRemove,
+} from "firebase/firestore";
+import { Button } from "@/components/ui/button";
 import {
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
   TableHeader,
-  TableRow
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
 } from "@/components/ui/table";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, UserPlus } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-
-// ✅ Firebase Firestore imports (USED BELOW)
-import { db } from "@/firebase";
-import { collection, addDoc, getDocs } from "firebase/firestore";
 
 export function MemberList() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [newMemberDialog, setNewMemberDialog] = useState(false);
-  const [newMemberName, setNewMemberName] = useState("");
-  const [newMemberEmail, setNewMemberEmail] = useState("");
-  const [localMembers, setLocalMembers] = useState<any[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
+  const [groups, setGroups] = useState<any[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<string>("");
+  const [usernameInput, setUsernameInput] = useState<string>("");
 
-  // ✅ Fetch members from Firestore when component loads
+  // Fetch groups and members
   useEffect(() => {
-    const fetchMembers = async () => {
+    const fetchGroupsAndMembers = async () => {
       try {
-        const snapshot = await getDocs(collection(db, "members"));
-        const membersData = snapshot.docs.map((doc) => ({
+        const groupsSnapshot = await getDocs(collection(db, "groups"));
+        const groupsData = groupsSnapshot.docs.map((doc) => ({
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
         }));
-        setLocalMembers(membersData);
+        setGroups(groupsData);
+
+        const membersSnapshot = await getDocs(collection(db, "members"));
+        const membersData = membersSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setMembers(membersData);
       } catch (error) {
-        console.error("Error fetching members:", error);
+        console.error("Error fetching data:", error);
       }
     };
 
-    fetchMembers();
+    fetchGroupsAndMembers();
   }, []);
 
-  // Get initials for avatar fallback
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((part) => part[0])
-      .join("")
-      .toUpperCase();
+  const clearInputs = () => {
+    setSelectedGroup("");
+    setUsernameInput("");
   };
 
-  const filteredMembers = localMembers.filter((member) =>
-    member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    member.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // ✅ Add member to Firestore
-  const handleAddMember = async () => {
-    if (!newMemberName.trim()) {
+  const handleInviteMember = async () => {
+    if (!selectedGroup || !usernameInput.trim()) {
       toast({
         title: "Error",
-        description: "Member name is required",
-        variant: "destructive"
+        description: "Please select a group and enter a username.",
+        variant: "destructive",
       });
-      return;
-    }
-
-    if (!newMemberEmail.trim() || !newMemberEmail.includes("@")) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid email address",
-        variant: "destructive"
-      });
+      clearInputs();
       return;
     }
 
     try {
-      const docRef = await addDoc(collection(db, "members"), {
-        name: newMemberName,
-        email: newMemberEmail,
-        contributed: 0,
-        owed: 0,
-        createdAt: new Date()
-      });
+      const memberSnapshot = await getDocs(
+        query(collection(db, "members"), where("username", "==", usernameInput.trim()))
+      );
 
-      const newMember = {
-        id: docRef.id,
-        name: newMemberName,
-        email: newMemberEmail,
-        contributed: 0,
-        owed: 0
-      };
+      const memberDoc = memberSnapshot.docs[0];
 
-      setLocalMembers([...localMembers, newMember]);
-      setNewMemberDialog(false);
-      setNewMemberName("");
-      setNewMemberEmail("");
+      if (!memberDoc) {
+        toast({
+          title: "Error",
+          description: "No member found with that username.",
+          variant: "destructive",
+        });
+        clearInputs();
+        return;
+      }
 
-      toast({
-        title: "Success",
-        description: `${newMemberName} has been added`,
-      });
+      const memberId = memberDoc.id;
+      const groupRef = doc(db, "groups", selectedGroup);
+      const groupData = groups.find((group) => group.id === selectedGroup);
+
+      if (groupData?.members?.includes(memberId)) {
+        toast({
+          title: "Already Added",
+          description: "This member is already part of the group.",
+        });
+      } else {
+        await updateDoc(groupRef, {
+          members: arrayUnion(memberId),
+        });
+
+        toast({
+          title: "Success",
+          description: `${usernameInput} has been invited to the group.`,
+        });
+      }
     } catch (error) {
-      console.error("Error adding member:", error);
+      console.error("Error inviting member:", error);
       toast({
         title: "Error",
-        description: "Failed to add member",
-        variant: "destructive"
+        description: "Failed to invite member.",
+        variant: "destructive",
       });
+    } finally {
+      clearInputs();
     }
   };
 
+  const handleRemoveMember = async () => {
+    if (!selectedGroup || !usernameInput.trim()) {
+      toast({
+        title: "Error",
+        description: "Please select a group and enter a username.",
+        variant: "destructive",
+      });
+      clearInputs();
+      return;
+    }
+
+    try {
+      const memberSnapshot = await getDocs(
+        query(collection(db, "members"), where("username", "==", usernameInput.trim()))
+      );
+
+      const memberDoc = memberSnapshot.docs[0];
+
+      if (!memberDoc) {
+        toast({
+          title: "Error",
+          description: "No member found with that username.",
+          variant: "destructive",
+        });
+        clearInputs();
+        return;
+      }
+
+      const memberId = memberDoc.id;
+      const groupData = groups.find((group) => group.id === selectedGroup);
+
+      if (!groupData?.members?.includes(memberId)) {
+        toast({
+          title: "Error",
+          description: "This member is not in the selected group.",
+          variant: "destructive",
+        });
+        clearInputs();
+        return;
+      }
+
+      const groupRef = doc(db, "groups", selectedGroup);
+      await updateDoc(groupRef, {
+        members: arrayRemove(memberId),
+      });
+
+      toast({
+        title: "Success",
+        description: "Member removed from group.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Could not remove member.",
+        variant: "destructive",
+      });
+    } finally {
+      clearInputs();
+    }
+  };
+
+  const filteredMembers = members.filter((member) => {
+    const matchSearch =
+      member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      member.email.toLowerCase().includes(searchQuery.toLowerCase());
+
+    if (!selectedGroup) return matchSearch;
+
+    const group = groups.find((g) => g.id === selectedGroup);
+    return matchSearch && group?.members?.includes(member.id);
+  });
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+    <div className="space-y-6">
+      {/* Invite/Remove Member Section */}
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold">Manage Group Members</h2>
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="w-full md:w-1/3">
+            <label htmlFor="group" className="block text-sm font-medium mb-1">
+              Select Group
+            </label>
+            <select
+              id="group"
+              className="w-full border rounded-md px-3 py-2"
+              value={selectedGroup}
+              onChange={(e) => setSelectedGroup(e.target.value)}
+            >
+              <option value="">Select a group</option>
+              {groups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="w-full md:w-1/3">
+            <label htmlFor="username" className="block text-sm font-medium mb-1">
+              Username
+            </label>
+            <Input
+              id="username"
+              placeholder="Enter username"
+              value={usernameInput}
+              onChange={(e) => setUsernameInput(e.target.value)}
+            />
+          </div>
+
+          <div className="flex items-end gap-2">
+            <Button onClick={handleInviteMember}>Invite Member</Button>
+            <Button variant="destructive" onClick={handleRemoveMember}>
+              Remove Member
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="flex justify-end">
+        <div className="w-full md:w-1/3">
           <Input
             type="search"
             placeholder="Search members..."
-            className="pl-8"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <Button onClick={() => setNewMemberDialog(true)}>
-          <UserPlus className="mr-2 h-4 w-4" />
-          Add Member
-        </Button>
       </div>
 
-      <div className="rounded-md border">
+      {/* Members Table */}
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Member</TableHead>
+              <TableHead>Username</TableHead>
               <TableHead>Email</TableHead>
               <TableHead className="text-right">Contributed</TableHead>
               <TableHead className="text-right">Owed</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -161,22 +270,14 @@ export function MemberList() {
             ) : (
               filteredMembers.map((member) => (
                 <TableRow key={member.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-9 w-9">
-                        <AvatarImage src={`/avatars/${member.id}.jpg`} alt={member.name} />
-                        <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
-                      </Avatar>
-                      <div className="font-medium">{member.name}</div>
-                    </div>
-                  </TableCell>
+                  <TableCell>{member.name}</TableCell>
+                  <TableCell>{member.username}</TableCell>
                   <TableCell>{member.email}</TableCell>
-                  <TableCell className="text-right">${member.contributed.toFixed(2)}</TableCell>
-                  <TableCell className="text-right">${member.owed.toFixed(2)}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link to={`/profile/${member.id}`}>View Profile</Link>
-                    </Button>
+                    ${member.contributed?.toFixed(2) || "0.00"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    ${member.owed?.toFixed(2) || "0.00"}
                   </TableCell>
                 </TableRow>
               ))
@@ -184,51 +285,6 @@ export function MemberList() {
           </TableBody>
         </Table>
       </div>
-
-      {/* Add Member Dialog */}
-      <Dialog open={newMemberDialog} onOpenChange={setNewMemberDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add New Member</DialogTitle>
-            <DialogDescription>
-              Enter the details of the member you'd like to add.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <label htmlFor="name" className="text-sm font-medium">
-                Full Name
-              </label>
-              <Input
-                id="name"
-                placeholder="John Doe"
-                value={newMemberName}
-                onChange={(e) => setNewMemberName(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <label htmlFor="email" className="text-sm font-medium">
-                Email Address
-              </label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="john@example.com"
-                value={newMemberEmail}
-                onChange={(e) => setNewMemberEmail(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setNewMemberDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleAddMember}>
-              Add Member
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
