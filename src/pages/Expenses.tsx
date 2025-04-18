@@ -219,7 +219,7 @@ const Expenses = () => {
 
       toast({
         title: "Expense added",
-        description: `${newExpense.title} ($${amount.toFixed(2)}) has been added successfully.`,
+        description: `${newExpense.title} (₹${amount.toFixed(2)}) has been added successfully.`,
       });
 
       // Reset form and close dialog
@@ -489,7 +489,7 @@ const Expenses = () => {
                   
                   <div className="bg-muted rounded-lg p-4">
                     <div className="text-xl font-bold mb-4">
-                      ${selectedExpense.amount.toFixed(2)}
+                      ₹{selectedExpense.amount.toFixed(2)}
                     </div>
                     
                     {selectedExpense.split?.details && (
@@ -497,7 +497,7 @@ const Expenses = () => {
                         {Object.entries(selectedExpense.split.details).map(([person, amount], index) => (
                           <div key={index} className="flex justify-between items-center">
                             <span>{person}</span>
-                            <span className="font-medium">${amount.toFixed(2)}</span>
+                            <span className="font-medium">₹{amount.toFixed(2)}</span>
                           </div>
                         ))}
                       </div>
@@ -542,7 +542,7 @@ const Expenses = () => {
             
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="amount">Amount ($)</Label>
+                <Label htmlFor="amount">Amount (₹)</Label>
                 <Input
                   id="amount"
                   name="amount"
@@ -677,7 +677,7 @@ const Expenses = () => {
             
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="edit-amount">Amount ($)</Label>
+                <Label htmlFor="edit-amount">Amount (₹)</Label>
                 <Input
                   id="edit-amount"
                   name="amount"
@@ -788,7 +788,7 @@ const Expenses = () => {
           
           <div className="py-4">
             <p>Are you sure you want to delete this expense?</p>
-            <p className="font-medium mt-2">{selectedExpense?.title} - ${selectedExpense?.amount.toFixed(2)}</p>
+            <p className="font-medium mt-2">{selectedExpense?.title} - ₹{selectedExpense?.amount.toFixed(2)}</p>
             <p className="text-sm text-muted-foreground mt-1">This action cannot be undone.</p>
           </div>
           

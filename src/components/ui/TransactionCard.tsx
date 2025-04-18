@@ -44,7 +44,7 @@ export function TransactionCard({ transaction, icon, className }: TransactionCar
           </div>
         </div>
         <div className="text-right">
-          <div className="font-semibold">${amount.toFixed(2)}</div>
+          <div className="font-semibold">₹{amount.toFixed(2)}</div>
           <div className="text-xs text-muted-foreground">Paid by {paidBy}</div>
         </div>
       </div>

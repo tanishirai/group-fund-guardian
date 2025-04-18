@@ -36,10 +36,10 @@ export function BarChart({ data, className }: BarChartProps) {
             axisLine={false} 
             tickLine={false} 
             tick={{ fontSize: 12 }}
-            tickFormatter={(value) => `$${value}`}
+            tickFormatter={(value) => `₹${value}`}
           />
           <Tooltip
-            formatter={(value: number) => [`$${value.toFixed(2)}`, 'Amount']}
+            formatter={(value: number) => [`₹${value.toFixed(2)}`, 'Amount']}
             contentStyle={{
               borderRadius: '8px',
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',

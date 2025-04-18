@@ -274,10 +274,10 @@ export function MemberList() {
                   <TableCell>{member.username}</TableCell>
                   <TableCell>{member.email}</TableCell>
                   <TableCell className="text-right">
-                    ${member.contributed?.toFixed(2) || "0.00"}
+                    ₹{member.contributed?.toFixed(2) || "0.00"}
                   </TableCell>
                   <TableCell className="text-right">
-                    ${member.owed?.toFixed(2) || "0.00"}
+                    ₹{member.owed?.toFixed(2) || "0.00"}
                   </TableCell>
                 </TableRow>
               ))

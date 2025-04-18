@@ -47,19 +47,19 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 animate-slide-in">
         <StatCard 
           title="Total Balance" 
-          value="$3,621.25" 
+          value="₹3,621.25" 
           icon={<Wallet className="h-5 w-5" />}
           trend={{ value: 5.2, isPositive: true }}
         />
         <StatCard 
           title="Monthly Expenses" 
-          value="$2,514.80" 
+          value="₹2,514.80" 
           icon={<TrendingUp className="h-5 w-5" />}
           trend={{ value: 2.4, isPositive: false }}
         />
         <StatCard 
           title="Pending Settlements" 
-          value="$1,296.78" 
+          value="₹1,296.78" 
           icon={<PiggyBank className="h-5 w-5" />}
         />
       </div>

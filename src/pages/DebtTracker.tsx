@@ -141,7 +141,7 @@ const DebtTracker = () => {
       setDebts([{ id: docRef.id, ...newDebt }, ...debts]);
       toast({
         title: "Contribution added",
-        description: `${from} now owes ${to} $${parsedAmount.toFixed(2)}.`,
+        description: `${from} now owes ${to} ₹${parsedAmount.toFixed(2)}.`,
       });
 
       setNewContribution({ from: "", to: "", amount: "", description: "" });
@@ -207,7 +207,7 @@ const DebtTracker = () => {
                     <p className="text-xs text-muted-foreground mt-1">{debt.description}</p>
                   </div>
                   <div className="flex flex-col items-end">
-                    <div className="text-xl font-bold text-primary">${debt.amount.toFixed(2)}</div>
+                    <div className="text-xl font-bold text-primary">₹{debt.amount.toFixed(2)}</div>
                     <Button 
                       size="sm" 
                       className="mt-2 bg-primary text-white"
@@ -251,7 +251,7 @@ const DebtTracker = () => {
                     <td className="px-6 py-4 whitespace-nowrap">{debt.from}</td>
                     <td className="px-6 py-4 whitespace-nowrap">{debt.to}</td>
                     <td className="px-6 py-4 whitespace-nowrap">{debt.description}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">${debt.amount.toFixed(2)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">₹{debt.amount.toFixed(2)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <Button 
                         size="sm"
@@ -320,7 +320,7 @@ const DebtTracker = () => {
               </div>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="amount">Amount ($)</Label>
+              <Label htmlFor="amount">Amount (₹)</Label>
               <Input
                 type="number"
                 id="amount"

@@ -88,7 +88,7 @@ export function BudgetForm({ onCancel, onSave, initialData }: BudgetFormProps) {
               name="monthly"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Monthly Budget ($)</FormLabel>
+                  <FormLabel>Monthly Budget (₹)</FormLabel>
                   <FormControl>
                     <Input 
                       type="number" 
@@ -117,7 +117,7 @@ export function BudgetForm({ onCancel, onSave, initialData }: BudgetFormProps) {
                         <FormLabel className="min-w-[100px]">{category}</FormLabel>
                         <FormControl>
                           <div className="flex items-center gap-2 w-full max-w-[200px]">
-                            <span className="text-muted-foreground">$</span>
+                            <span className="text-muted-foreground">₹</span>
                             <Input
                               type="number"
                               step="1"

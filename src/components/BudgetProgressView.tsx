@@ -39,15 +39,15 @@ const BudgetProgressView = ({ budgetData }: BudgetProgressViewProps) => {
           <div className="flex flex-col space-y-2">
             <div className="flex justify-between items-center mb-1">
               <span className="text-sm font-medium">Total Monthly Budget</span>
-              <span className="font-semibold">${totalBudget.toFixed(2)}</span>
+              <span className="font-semibold">₹{totalBudget.toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-center mb-1">
               <span className="text-sm font-medium">Total Spent</span>
-              <span className="font-semibold">${totalSpent.toFixed(2)}</span>
+              <span className="font-semibold">₹{totalSpent.toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-center mb-1">
               <span className="text-sm font-medium">Remaining</span>
-              <span className="font-semibold">${(totalBudget - totalSpent).toFixed(2)}</span>
+              <span className="font-semibold">₹{(totalBudget - totalSpent).toFixed(2)}</span>
             </div>
             
             <div className="mt-4">
@@ -82,9 +82,9 @@ const BudgetProgressView = ({ budgetData }: BudgetProgressViewProps) => {
                   <div className="flex justify-between items-center">
                     <span className="font-medium">{category}</span>
                     <div className="flex items-center">
-                      <span className="text-sm">${spent.toFixed(2)}</span>
+                      <span className="text-sm">₹{spent.toFixed(2)}</span>
                       <ArrowRight className="h-3 w-3 mx-1 text-gray-400" />
-                      <span className="text-sm">${allocated.toFixed(2)}</span>
+                      <span className="text-sm">₹{allocated.toFixed(2)}</span>
                     </div>
                   </div>
                   
@@ -104,14 +104,14 @@ const BudgetProgressView = ({ budgetData }: BudgetProgressViewProps) => {
                     {isOverBudget && (
                       <div className="flex items-center mt-1 text-xs text-red-500">
                         <AlertCircle className="h-3 w-3 mr-1" />
-                        <span>Over budget by ${(spent - allocated).toFixed(2)}</span>
+                        <span>Over budget by ₹{(spent - allocated).toFixed(2)}</span>
                       </div>
                     )}
                     
                     {isNearLimit && (
                       <div className="flex items-center mt-1 text-xs text-amber-500">
                         <TrendingUp className="h-3 w-3 mr-1" />
-                        <span>Approaching limit (${(allocated - spent).toFixed(2)} remaining)</span>
+                        <span>Approaching limit (₹{(allocated - spent).toFixed(2)} remaining)</span>
                       </div>
                     )}
                   </div>
