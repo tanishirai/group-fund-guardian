@@ -1,11 +1,13 @@
-
-import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { toast } from "sonner";
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,16 +18,15 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { budgets } from "@/lib/data";
 
-// Create schema for budget form validation
+// 1. Define validation schema
 const budgetFormSchema = z.object({
   monthly: z.coerce.number().positive("Budget must be greater than 0"),
   categories: z.record(
     z.object({
-      allocated: z.coerce.number().nonnegative("Allocation must be a positive number"),
+      allocated: z.coerce.number().min(0, "Allocation can't be negative")
     })
-  ),
+  )
 });
 
 type BudgetFormValues = z.infer<typeof budgetFormSchema>;
@@ -33,42 +34,55 @@ type BudgetFormValues = z.infer<typeof budgetFormSchema>;
 interface BudgetFormProps {
   onCancel: () => void;
   onSave: (values: BudgetFormValues) => void;
+  initialData: {
+    monthly: number;
+    categories: Record<string, { allocated: number }>;
+  };
 }
 
-export default function BudgetForm({ onCancel, onSave }: BudgetFormProps) {
-  // Initialize form with existing budget values
-  const defaultValues: BudgetFormValues = {
-    monthly: budgets.monthly,
-    categories: Object.entries(budgets.categories).reduce((acc, [category, values]) => {
-      acc[category] = { allocated: values.allocated };
-      return acc;
-    }, {} as Record<string, { allocated: number }>),
-  };
-
+// 2. Export the component properly
+export function BudgetForm({ onCancel, onSave, initialData }: BudgetFormProps) {
+  // 3. Initialize form with default values
   const form = useForm<BudgetFormValues>({
     resolver: zodResolver(budgetFormSchema),
-    defaultValues,
+    defaultValues: {
+      monthly: initialData.monthly,
+      categories: Object.keys(initialData.categories).reduce((acc, category) => {
+        acc[category] = { allocated: initialData.categories[category].allocated };
+        return acc;
+      }, {} as Record<string, { allocated: number }>)
+    }
   });
 
-  const handleSubmit = (values: BudgetFormValues) => {
-    // Here we would normally save to a database
-    console.log("Budget form submitted:", values);
-    toast.success("Budget updated successfully");
-    onSave(values);
+  // 4. Handle form submission
+  const onSubmit = (data: BudgetFormValues) => {
+    try {
+      const totalAllocated = Object.values(data.categories).reduce(
+        (sum, { allocated }) => sum + allocated, 0
+      );
+      
+      if (totalAllocated > data.monthly) {
+        toast.warning("Category allocations exceed monthly budget!");
+        return;
+      }
+
+      onSave(data);
+      toast.success("Budget updated successfully!");
+    } catch (error) {
+      toast.error("Failed to update budget");
+      console.error("Budget update error:", error);
+    }
   };
 
+  // 5. Render form
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle>Set Budget</CardTitle>
+        <CardTitle className="text-xl">Edit Budget</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-muted-foreground mb-6">
-          Set your monthly budget and category limits to help track your expenses.
-        </p>
-
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
               control={form.control}
               name="monthly"
@@ -76,7 +90,13 @@ export default function BudgetForm({ onCancel, onSave }: BudgetFormProps) {
                 <FormItem>
                   <FormLabel>Monthly Budget ($)</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" min="0" {...field} />
+                    <Input 
+                      type="number" 
+                      step="1" 
+                      min="0" 
+                      placeholder="Enter monthly budget"
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -86,24 +106,24 @@ export default function BudgetForm({ onCancel, onSave }: BudgetFormProps) {
             <div className="space-y-4">
               <h3 className="text-sm font-medium">Category Allocations</h3>
               
-              {Object.entries(budgets.categories).map(([category]) => (
+              {Object.keys(initialData.categories).map((category) => (
                 <FormField
                   key={category}
                   control={form.control}
                   name={`categories.${category}.allocated`}
                   render={({ field }) => (
                     <FormItem>
-                      <div className="flex items-center justify-between">
-                        <FormLabel className="w-1/3">{category}</FormLabel>
+                      <div className="flex items-center justify-between gap-4">
+                        <FormLabel className="min-w-[100px]">{category}</FormLabel>
                         <FormControl>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm">$</span>
-                            <Input 
-                              type="number" 
-                              step="0.01" 
-                              min="0" 
-                              className="w-full" 
-                              {...field} 
+                          <div className="flex items-center gap-2 w-full max-w-[200px]">
+                            <span className="text-muted-foreground">$</span>
+                            <Input
+                              type="number"
+                              step="1"
+                              min="0"
+                              placeholder="0"
+                              {...field}
                             />
                           </div>
                         </FormControl>
@@ -115,11 +135,15 @@ export default function BudgetForm({ onCancel, onSave }: BudgetFormProps) {
               ))}
             </div>
 
-            <div className="flex justify-end space-x-4">
-              <Button variant="outline" onClick={onCancel} type="button">
+            <div className="flex justify-end gap-4 pt-4">
+              <Button 
+                variant="outline" 
+                type="button" 
+                onClick={onCancel}
+              >
                 Cancel
               </Button>
-              <Button type="submit">Save Budget</Button>
+              <Button type="submit">Save Changes</Button>
             </div>
           </form>
         </Form>
@@ -127,3 +151,6 @@ export default function BudgetForm({ onCancel, onSave }: BudgetFormProps) {
     </Card>
   );
 }
+
+// 6. Default export (can use either named or default export)
+export default BudgetForm;

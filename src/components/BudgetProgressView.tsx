@@ -1,14 +1,28 @@
-
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";  // Make sure this path is correct
 import { Progress } from "@/components/ui/progress";
-import { budgets } from "@/lib/data";
 import { ArrowRight, TrendingUp, AlertCircle } from "lucide-react";
 
-const BudgetProgressView = () => {
-  // Calculate totals and percentages
-  const totalBudget = budgets.monthly;
-  const totalSpent = Object.values(budgets.categories).reduce(
+interface CategoryData {
+  allocated: number;
+  spent: number;
+}
+
+interface BudgetProgressViewProps {
+  budgetData: {
+    monthly: number;
+    categories: Record<string, CategoryData>;
+  };
+}
+
+const BudgetProgressView = ({ budgetData }: BudgetProgressViewProps) => {
+  const totalBudget = budgetData.monthly;
+  const totalSpent = Object.values(budgetData.categories).reduce(
     (sum, category) => sum + category.spent, 
     0
   );
@@ -58,7 +72,7 @@ const BudgetProgressView = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            {Object.entries(budgets.categories).map(([category, { allocated, spent }]) => {
+            {Object.entries(budgetData.categories).map(([category, { allocated, spent }]) => {
               const percentage = Math.round((spent / allocated) * 100);
               const isOverBudget = spent > allocated;
               const isNearLimit = percentage > 90 && !isOverBudget;

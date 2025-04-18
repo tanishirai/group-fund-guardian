@@ -1,4 +1,3 @@
-
 import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -27,6 +26,8 @@ const Profile = () => {
   const [isCurrentUser, setIsCurrentUser] = useState(true);
   const [selectedMember, setSelectedMember] = useState(members[0]);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<any>(null);
   const { toast } = useToast();
 
   // Initialize form with selected member data
@@ -40,7 +41,7 @@ const Profile = () => {
 
   useEffect(() => {
     if (memberId) {
-      const member = members.find(m => m.id === memberId);
+      const member = members.find((m) => m.id === memberId);
       if (member) {
         setSelectedMember(member);
         setIsCurrentUser(false);
@@ -61,17 +62,17 @@ const Profile = () => {
 
   // Get member's transactions
   const memberTransactions = transactions.filter(
-    transaction => transaction.paidBy === selectedMember.name
+    (transaction) => transaction.paidBy === selectedMember.name
   ).slice(0, 3);
 
   // Get member's groups
   const memberGroups = groups.filter(
-    group => group.members.includes(selectedMember.name)
+    (group) => group.members.includes(selectedMember.name)
   );
 
   // Get member's debts (both owed and owing)
   const memberDebts = debts.filter(
-    debt => debt.from === selectedMember.name || debt.to === selectedMember.name
+    (debt) => debt.from === selectedMember.name || debt.to === selectedMember.name
   );
 
   const handleEditSubmit = (values: z.infer<typeof profileFormSchema>) => {
@@ -83,11 +84,20 @@ const Profile = () => {
     setIsEditDialogOpen(false);
   };
 
+  const handleRemoveMember = () => {
+    // In a real app, this would remove the member from the group
+    toast({
+      title: "Member removed",
+      description: `${memberToRemove?.name} has been removed from the group.`,
+    });
+    setIsRemoveDialogOpen(false);
+  };
+
   const netBalance = selectedMember.contributed - selectedMember.owed;
 
   return (
     <PageLayout>
-      <PageHeader 
+      <PageHeader
         title={isCurrentUser ? "My Profile" : selectedMember.name}
         description={isCurrentUser ? "Manage your personal information and track your expenses" : "View member details and activity"}
       >
@@ -145,7 +155,7 @@ const Profile = () => {
                   <p className="text-sm text-muted-foreground">Net Balance</p>
                   <p className={cn(
                     "font-medium",
-                    netBalance > 0 ? "text-green-600" : 
+                    netBalance > 0 ? "text-green-600" :
                     netBalance < 0 ? "text-red-600" : ""
                   )}>
                     {netBalance > 0 ? "+" : ""}{netBalance.toFixed(2)}
@@ -175,7 +185,7 @@ const Profile = () => {
                 <p className="text-sm text-muted-foreground">Net Balance</p>
                 <p className={cn(
                   "text-xl font-semibold mt-1",
-                  netBalance > 0 ? "text-green-600" : 
+                  netBalance > 0 ? "text-green-600" :
                   netBalance < 0 ? "text-red-600" : ""
                 )}>
                   {netBalance > 0 ? "+" : ""}${Math.abs(netBalance).toFixed(2)}
@@ -304,6 +314,21 @@ const Profile = () => {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Remove Member Confirmation Dialog */}
+      <Dialog open={isRemoveDialogOpen} onOpenChange={setIsRemoveDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Remove Member</DialogTitle>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsRemoveDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleRemoveMember}>Remove Member</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </PageLayout>

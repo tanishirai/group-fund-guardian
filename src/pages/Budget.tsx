@@ -1,24 +1,57 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageHeader } from "@/components/ui/PageHeader";
 import PageLayout from "@/components/layout/PageLayout";
 import BudgetForm from "@/components/BudgetForm";
 import BudgetProgressView from "@/components/BudgetProgressView";
-import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+interface Category {
+  allocated: number;
+  spent: number;
+}
+
+interface BudgetData {
+  monthly: number;
+  categories: Record<string, Category>;
+}
 
 const Budget = () => {
   const [activeTab, setActiveTab] = useState("view");
-  const [isEditing, setIsEditing] = useState(false);
+  const [budgetData, setBudgetData] = useState<BudgetData>({
+    monthly: 3000,
+    categories: {
+      "Utilities": { allocated: 500, spent: 400 },
+      "Food": { allocated: 800, spent: 750 },
+      "Transport": { allocated: 300, spent: 350 },
+      "Entertainment": { allocated: 400, spent: 200 },
+    }
+  });
 
-  const handleCancel = () => {
-    setIsEditing(false);
-    setActiveTab("view");
-  };
+  // Load saved data
+  useEffect(() => {
+    const savedData = localStorage.getItem("budgetData");
+    if (savedData) {
+      setBudgetData(JSON.parse(savedData));
+    }
+  }, []);
 
-  const handleSave = (values: any) => {
-    console.log("Budget values saved:", values);
-    setIsEditing(false);
+  const handleSave = (values: { monthly: number; categories: Record<string, { allocated: number }> }) => {
+    // Preserve the spent values while updating allocations
+    const updatedCategories = Object.keys(values.categories).reduce((acc, category) => {
+      acc[category] = {
+        allocated: values.categories[category].allocated,
+        spent: budgetData.categories[category]?.spent || 0
+      };
+      return acc;
+    }, {} as Record<string, Category>);
+
+    const updatedData = {
+      monthly: values.monthly,
+      categories: updatedCategories
+    };
+
+    setBudgetData(updatedData);
+    localStorage.setItem("budgetData", JSON.stringify(updatedData));
     setActiveTab("view");
   };
 
@@ -36,11 +69,21 @@ const Budget = () => {
         </TabsList>
         
         <TabsContent value="view">
-          <BudgetProgressView />
+          <BudgetProgressView budgetData={budgetData} />
         </TabsContent>
         
         <TabsContent value="edit">
-          <BudgetForm onCancel={handleCancel} onSave={handleSave} />
+          <BudgetForm 
+            onCancel={() => setActiveTab("view")} 
+            onSave={handleSave}
+            initialData={{
+              monthly: budgetData.monthly,
+              categories: Object.entries(budgetData.categories).reduce((acc, [category, data]) => {
+                acc[category] = { allocated: data.allocated };
+                return acc;
+              }, {} as Record<string, { allocated: number }>)
+            }}
+          />
         </TabsContent>
       </Tabs>
     </PageLayout>
