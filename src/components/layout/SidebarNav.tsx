@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { 
@@ -104,10 +103,10 @@ export default function SidebarNav() {
               onClick={() => isMobile && setIsOpen(false)}
             >
               <div className="h-9 w-9 rounded-full bg-sidebar-accent flex items-center justify-center text-white">
-                <span className="text-sm font-medium">JD</span>
+                <span className="text-sm font-medium">TR</span>
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-white">John Doe</p>
+                <p className="text-sm font-medium text-white">Tanishi Rai</p>
                 <p className="text-xs text-sidebar-foreground/70">View Profile</p>
               </div>
             </NavLink>

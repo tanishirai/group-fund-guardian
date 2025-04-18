@@ -1,18 +1,17 @@
-
 export const transactions = [
   {
     id: "tr1",
     title: "Dinner at Italian Restaurant",
     amount: 124.80,
     category: "Food",
-    paidBy: "John Doe",
-    date: "June 12, 2023",
+    paidBy: "Tanishi Rai",
+    date: "April 15, 2025",
     split: {
       type: "equal",
       details: {
-        "John Doe": 41.60,
-        "Jane Smith": 41.60,
-        "Mike Johnson": 41.60,
+        "Tanishi Rai": 41.60,
+        "Aditi Mishra": 41.60,
+        "Swasti Bansal": 41.60,
       }
     }
   },
@@ -21,14 +20,14 @@ export const transactions = [
     title: "Monthly Rent",
     amount: 1800.00,
     category: "Housing",
-    paidBy: "Jane Smith",
-    date: "June 1, 2023",
+    paidBy: "Aditi Mishra",
+    date: "April 1, 2025",
     split: {
       type: "custom",
       details: {
-        "John Doe": 600.00,
-        "Jane Smith": 600.00,
-        "Mike Johnson": 600.00,
+        "Tanishi Rai": 600.00,
+        "Aditi Mishra": 600.00,
+        "Swasti Bansal": 600.00,
       }
     }
   },
@@ -37,14 +36,14 @@ export const transactions = [
     title: "Utility Bills",
     amount: 235.40,
     category: "Utilities",
-    paidBy: "Mike Johnson",
-    date: "May 28, 2023",
+    paidBy: "Swasti Bansal",
+    date: "March 28, 2025",
     split: {
       type: "equal",
       details: {
-        "John Doe": 78.47,
-        "Jane Smith": 78.47,
-        "Mike Johnson": 78.46,
+        "Tanishi Rai": 78.47,
+        "Aditi Mishra": 78.47,
+        "Swasti Bansal": 78.46,
       }
     }
   },
@@ -53,14 +52,14 @@ export const transactions = [
     title: "Groceries",
     amount: 189.65,
     category: "Food",
-    paidBy: "John Doe",
-    date: "May 25, 2023",
+    paidBy: "Tanishi Rai",
+    date: "March 25, 2025",
     split: {
       type: "equal",
       details: {
-        "John Doe": 63.22,
-        "Jane Smith": 63.22,
-        "Mike Johnson": 63.21,
+        "Tanishi Rai": 63.22,
+        "Vanshika Singh": 63.22,
+        "Arpit Dhiman": 63.21,
       }
     }
   },
@@ -69,14 +68,14 @@ export const transactions = [
     title: "Movie Tickets",
     amount: 45.00,
     category: "Entertainment",
-    paidBy: "Jane Smith",
-    date: "May 20, 2023",
+    paidBy: "Aditi Mishra",
+    date: "March 20, 2025",
     split: {
       type: "equal",
       details: {
-        "John Doe": 15.00,
-        "Jane Smith": 15.00,
-        "Mike Johnson": 15.00,
+        "Tanishi Rai": 15.00,
+        "Aditi Mishra": 15.00,
+        "Swasti Bansal": 15.00,
       }
     }
   }
@@ -86,21 +85,21 @@ export const groups = [
   {
     id: "g1",
     name: "Roommates",
-    members: ["John Doe", "Jane Smith", "Mike Johnson"],
+    members: ["Tanishi Rai", "Aditi Mishra", "Swasti Bansal"],
     balance: 2450.00,
     expenses: ["tr1", "tr2", "tr3"]
   },
   {
     id: "g2",
     name: "Road Trip",
-    members: ["John Doe", "Sarah Wilson", "David Brown"],
+    members: ["Tanishi Rai", "Vanshika Singh", "Arpit Dhiman"],
     balance: 850.75,
     expenses: ["tr4"]
   },
   {
     id: "g3",
     name: "Family",
-    members: ["John Doe", "Emma Doe", "Oliver Doe"],
+    members: ["Tanishi Rai", "Aditi Mishra", "Swasti Bansal"],
     balance: 320.50,
     expenses: ["tr5"]
   }
@@ -126,36 +125,36 @@ export const monthlyExpensesData = [
 export const members = [
   {
     id: "m1",
-    name: "John Doe",
-    email: "john@example.com",
+    name: "Tanishi Rai",
+    email: "tanishi@example.com",
     contributed: 1240.60,
     owed: 450.20
   },
   {
     id: "m2",
-    name: "Jane Smith",
-    email: "jane@example.com",
+    name: "Aditi Mishra",
+    email: "aditi@example.com",
     contributed: 1845.00,
     owed: 720.15
   },
   {
     id: "m3",
-    name: "Mike Johnson",
-    email: "mike@example.com",
+    name: "Swasti Bansal",
+    email: "swasti@example.com",
     contributed: 235.40,
     owed: 1150.65
   },
   {
     id: "m4",
-    name: "Sarah Wilson",
-    email: "sarah@example.com",
+    name: "Vanshika Singh",
+    email: "vanshika@example.com",
     contributed: 0.00,
     owed: 63.22
   },
   {
     id: "m5",
-    name: "David Brown",
-    email: "david@example.com",
+    name: "Arpit Dhiman",
+    email: "arpit@example.com",
     contributed: 0.00,
     owed: 63.21
   }
@@ -164,29 +163,29 @@ export const members = [
 export const debts = [
   {
     id: "d1",
-    from: "John Doe",
-    to: "Jane Smith",
+    from: "Tanishi Rai",
+    to: "Aditi Mishra",
     amount: 450.20,
-    description: "Share of May expenses"
+    description: "Share of March expenses"
   },
   {
     id: "d2",
-    from: "Mike Johnson",
-    to: "Jane Smith",
+    from: "Swasti Bansal",
+    to: "Aditi Mishra",
     amount: 720.15,
     description: "Share of rent and utilities"
   },
   {
     id: "d3",
-    from: "Sarah Wilson",
-    to: "John Doe",
+    from: "Vanshika Singh",
+    to: "Tanishi Rai",
     amount: 63.22,
     description: "Groceries"
   },
   {
     id: "d4",
-    from: "David Brown",
-    to: "John Doe",
+    from: "Arpit Dhiman",
+    to: "Tanishi Rai",
     amount: 63.21,
     description: "Groceries"
   }
@@ -202,34 +201,3 @@ export const budgets = {
     Transportation: { allocated: 150.00, spent: 120.30 }
   }
 };
-
-// export const notifications = [
-//   {
-//     id: "n1",
-//     title: "New expense added",
-//     description: "Jane added a new expense 'Dinner at Italian Restaurant'",
-//     date: "June 12, 2023",
-//     read: false
-//   },
-//   {
-//     id: "n2",
-//     title: "Settlement request",
-//     description: "Jane requested a settlement of $450.20",
-//     date: "June 10, 2023",
-//     read: false
-//   },
-//   {
-//     id: "n3",
-//     title: "Budget alert",
-//     description: "You've reached 90% of your Food budget for this month",
-//     date: "June 8, 2023",
-//     read: true
-//   },
-//   {
-//     id: "n4",
-//     title: "New member",
-//     description: "Sarah joined the 'Road Trip' group",
-//     date: "June 5, 2023",
-//     read: true
-//   }
-// ];
