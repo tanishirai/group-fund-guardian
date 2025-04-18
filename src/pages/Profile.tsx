@@ -26,8 +26,6 @@ const Profile = () => {
   const [isCurrentUser, setIsCurrentUser] = useState(true);
   const [selectedMember, setSelectedMember] = useState(members[0]);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
-  const [memberToRemove, setMemberToRemove] = useState<any>(null);
   const { toast } = useToast();
 
   // Initialize form with selected member data
@@ -76,28 +74,30 @@ const Profile = () => {
   );
 
   const handleEditSubmit = (values: z.infer<typeof profileFormSchema>) => {
+    // Update the member data
+    const updatedMember = {
+      ...selectedMember,
+      name: values.name,
+      email: values.email,
+    };
+    
+    // Update state with new member data
+    setSelectedMember(updatedMember);
+
     // In a real app, this would update the database
     toast({
       title: "Profile updated",
       description: "Your profile information has been updated successfully.",
     });
-    setIsEditDialogOpen(false);
-  };
 
-  const handleRemoveMember = () => {
-    // In a real app, this would remove the member from the group
-    toast({
-      title: "Member removed",
-      description: `${memberToRemove?.name} has been removed from the group.`,
-    });
-    setIsRemoveDialogOpen(false);
+    setIsEditDialogOpen(false);
   };
 
   const netBalance = selectedMember.contributed - selectedMember.owed;
 
   return (
     <PageLayout>
-      <PageHeader
+      <PageHeader 
         title={isCurrentUser ? "My Profile" : selectedMember.name}
         description={isCurrentUser ? "Manage your personal information and track your expenses" : "View member details and activity"}
       >
@@ -155,7 +155,7 @@ const Profile = () => {
                   <p className="text-sm text-muted-foreground">Net Balance</p>
                   <p className={cn(
                     "font-medium",
-                    netBalance > 0 ? "text-green-600" :
+                    netBalance > 0 ? "text-green-600" : 
                     netBalance < 0 ? "text-red-600" : ""
                   )}>
                     {netBalance > 0 ? "+" : ""}{netBalance.toFixed(2)}
@@ -175,20 +175,20 @@ const Profile = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
               <div className="bg-secondary p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground">Total Contributed</p>
-                <p className="text-xl font-semibold mt-1">₹{selectedMember.contributed.toFixed(2)}</p>
+                <p className="text-xl font-semibold mt-1">${selectedMember.contributed.toFixed(2)}</p>
               </div>
               <div className="bg-secondary p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground">Total Owed</p>
-                <p className="text-xl font-semibold mt-1">₹{selectedMember.owed.toFixed(2)}</p>
+                <p className="text-xl font-semibold mt-1">${selectedMember.owed.toFixed(2)}</p>
               </div>
               <div className="bg-secondary p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground">Net Balance</p>
                 <p className={cn(
                   "text-xl font-semibold mt-1",
-                  netBalance > 0 ? "text-green-600" :
+                  netBalance > 0 ? "text-green-600" : 
                   netBalance < 0 ? "text-red-600" : ""
                 )}>
-                  {netBalance > 0 ? "+" : ""}₹{Math.abs(netBalance).toFixed(2)}
+                  {netBalance > 0 ? "+" : ""}${Math.abs(netBalance).toFixed(2)}
                 </p>
               </div>
             </div>
@@ -256,7 +256,7 @@ const Profile = () => {
                               "font-semibold",
                               isOwing ? "text-red-600" : "text-green-600"
                             )}>
-                              {isOwing ? "-" : "+"}₹{debt.amount.toFixed(2)}
+                              {isOwing ? "-" : "+"}${debt.amount.toFixed(2)}
                             </div>
                           </td>
                         </tr>
@@ -314,21 +314,6 @@ const Profile = () => {
               </DialogFooter>
             </form>
           </Form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Remove Member Confirmation Dialog */}
-      <Dialog open={isRemoveDialogOpen} onOpenChange={setIsRemoveDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Remove Member</DialogTitle>
-          </DialogHeader>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setIsRemoveDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={handleRemoveMember}>Remove Member</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </PageLayout>
