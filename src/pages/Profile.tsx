@@ -175,11 +175,11 @@ const Profile = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
               <div className="bg-secondary p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground">Total Contributed</p>
-                <p className="text-xl font-semibold mt-1">${selectedMember.contributed.toFixed(2)}</p>
+                <p className="text-xl font-semibold mt-1">₹{selectedMember.contributed.toFixed(2)}</p>
               </div>
               <div className="bg-secondary p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground">Total Owed</p>
-                <p className="text-xl font-semibold mt-1">${selectedMember.owed.toFixed(2)}</p>
+                <p className="text-xl font-semibold mt-1">₹{selectedMember.owed.toFixed(2)}</p>
               </div>
               <div className="bg-secondary p-4 rounded-lg">
                 <p className="text-sm text-muted-foreground">Net Balance</p>
@@ -188,7 +188,7 @@ const Profile = () => {
                   netBalance > 0 ? "text-green-600" : 
                   netBalance < 0 ? "text-red-600" : ""
                 )}>
-                  {netBalance > 0 ? "+" : ""}${Math.abs(netBalance).toFixed(2)}
+                  {netBalance > 0 ? "+" : ""}₹{Math.abs(netBalance).toFixed(2)}
                 </p>
               </div>
             </div>
@@ -256,7 +256,7 @@ const Profile = () => {
                               "font-semibold",
                               isOwing ? "text-red-600" : "text-green-600"
                             )}>
-                              {isOwing ? "-" : "+"}${debt.amount.toFixed(2)}
+                              {isOwing ? "-" : "+"}₹{debt.amount.toFixed(2)}
                             </div>
                           </td>
                         </tr>

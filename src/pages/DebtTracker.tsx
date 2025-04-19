@@ -3,16 +3,18 @@ import {
   ArrowLeftRight,
   Plus,
   ArrowRight,
-  CheckCircle
+  CheckCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import PageLayout from "@/components/layout/PageLayout";
-import { cn } from "@/lib/utils";
 import {
-  Dialog, DialogContent, DialogHeader,
-  DialogTitle, DialogFooter
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -22,89 +24,96 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue,
 } from "@/components/ui/select";
 import { members } from "@/lib/data";
 import { db } from "@/firebase";
 import {
   collection,
   addDoc,
-  getDocs
+  getDocs,
+  serverTimestamp,
+  query,
+  orderBy,
 } from "firebase/firestore";
 
+interface Debt {
+  id: string;
+  from: string;
+  to: string;
+  amount: number;
+  description: string;
+  timestamp: Date;
+  settled?: boolean;
+}
+
 const DebtTracker = () => {
-  const [debts, setDebts] = useState([]);
-  const [settledDebts, setSettledDebts] = useState<string[]>(() => {
-    // Load from localStorage on initial state
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('settledDebts');
-      return saved ? JSON.parse(saved) : [];
-    }
-    return [];
-  });
+  const [debts, setDebts] = useState<Debt[]>([]);
+  const [settledDebts, setSettledDebts] = useState<string[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [newContribution, setNewContribution] = useState({
+  const [newDebt, setNewDebt] = useState({
     from: "",
     to: "",
     amount: "",
-    description: ""
+    description: "",
   });
-
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Save to localStorage whenever settledDebts changes
+  // Load settled debts from localStorage
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('settledDebts', JSON.stringify(settledDebts));
-    }
+    const saved = localStorage.getItem("settledDebts");
+    if (saved) setSettledDebts(JSON.parse(saved));
+  }, []);
+
+  // Save settled debts to localStorage
+  useEffect(() => {
+    localStorage.setItem("settledDebts", JSON.stringify(settledDebts));
   }, [settledDebts]);
 
-  // 🔄 Fetch debts from Firestore on load
+  // Fetch debts from Firestore
   useEffect(() => {
     const fetchDebts = async () => {
       try {
-        const snapshot = await getDocs(collection(db, "contributions"));
-        const fetchedDebts = snapshot.docs.map(doc => ({
+        setLoading(true);
+        const q = query(collection(db, "debts"), orderBy("timestamp", "desc"));
+        const snapshot = await getDocs(q);
+
+        const fetchedDebts = snapshot.docs.map((doc) => ({
           id: doc.id,
-          ...doc.data()
-        })) as any;
+          from: doc.data().from,
+          to: doc.data().to,
+          amount: doc.data().amount,
+          description: doc.data().description,
+          timestamp: doc.data().timestamp?.toDate() || new Date(),
+          settled: doc.data().settled || false,
+        }));
+
         setDebts(fetchedDebts);
       } catch (error) {
+        console.error("Firestore error:", error);
         toast({
-          title: "Failed to fetch debts",
-          description: "Please try again.",
-          variant: "destructive"
+          title: "Failed to load debts",
+          description: "Please check your connection and try again.",
+          variant: "destructive",
         });
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchDebts();
-  }, []);
+  }, [toast]);
 
-  const toggleSettled = (id: string) => {
-    if (settledDebts.includes(id)) {
-      setSettledDebts(settledDebts.filter(debtId => debtId !== id));
-      toast({
-        title: "Settlement undone",
-        description: "The debt has been marked as active again.",
-      });
-    } else {
-      setSettledDebts([...settledDebts, id]);
-      toast({
-        title: "Debt settled",
-        description: "The debt has been marked as settled.",
-      });
-    }
-  };
+  const handleAddDebt = async () => {
+    const { from, to, amount, description } = newDebt;
 
-  const handleAddContribution = async () => {
-    const { from, to, amount, description } = newContribution;
-
+    // Validation
     if (!from || !to || !amount || !description) {
       toast({
         title: "Missing information",
         description: "Please fill all required fields.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -113,7 +122,7 @@ const DebtTracker = () => {
       toast({
         title: "Invalid selection",
         description: "A person cannot owe money to themselves.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -123,53 +132,95 @@ const DebtTracker = () => {
       toast({
         title: "Invalid amount",
         description: "Please enter a valid positive amount.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
-    const newDebt = {
-      from,
-      to,
-      amount: parsedAmount,
-      description,
-      timestamp: new Date()
-    };
-
     try {
-      const docRef = await addDoc(collection(db, "contributions"), newDebt);
-      setDebts([{ id: docRef.id, ...newDebt }, ...debts]);
+      const docRef = await addDoc(collection(db, "debts"), {
+        from,
+        to,
+        amount: parsedAmount,
+        description,
+        timestamp: serverTimestamp(),
+        settled: false,
+      });
+
+      // Update local state
+      setDebts((prev) => [
+        {
+          id: docRef.id,
+          from,
+          to,
+          amount: parsedAmount,
+          description,
+          timestamp: new Date(),
+          settled: false,
+        },
+        ...prev,
+      ]);
+
       toast({
-        title: "Contribution added",
+        title: "Debt added successfully",
         description: `${from} now owes ${to} ₹${parsedAmount.toFixed(2)}.`,
       });
 
-      setNewContribution({ from: "", to: "", amount: "", description: "" });
+      // Reset form
+      setNewDebt({ from: "", to: "", amount: "", description: "" });
       setIsAddDialogOpen(false);
     } catch (error) {
+      console.error("Firestore write error:", error);
       toast({
-        title: "Error adding to database",
+        title: "Error adding debt",
         description: "Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
-  const activeDebts = debts.filter(debt => !settledDebts.includes(debt.id));
-  const resolvedDebts = debts.filter(debt => settledDebts.includes(debt.id));
-  const memberNames = members.map(member => member.name);
+  const toggleSettled = (id: string) => {
+    setSettledDebts((prev) => {
+      const newSettled = prev.includes(id)
+        ? prev.filter((debtId) => debtId !== id)
+        : [...prev, id];
+
+      toast({
+        title: prev.includes(id) ? "Debt reactivated" : "Debt settled",
+        description: prev.includes(id)
+          ? "The debt has been marked as active again."
+          : "The debt has been marked as settled.",
+      });
+
+      return newSettled;
+    });
+  };
+
+  const activeDebts = debts.filter((debt) => !settledDebts.includes(debt.id));
+  const resolvedDebts = debts.filter((debt) => settledDebts.includes(debt.id));
+  const memberNames = members.map((member) => member.name);
+
+  if (loading) {
+    return (
+      <PageLayout>
+        <div className="flex justify-center items-center h-64">
+          <p>Loading debts...</p>
+        </div>
+      </PageLayout>
+    );
+  }
 
   return (
     <PageLayout>
-      <PageHeader 
-        title="Debt & Contribution Tracker" 
+      <PageHeader
+        title="Debt & Contribution Tracker"
         description="Manage who owes who in your groups"
       >
-        <Button 
+        <Button
           className="bg-primary text-white hover:bg-primary/90 transition-colors shadow-button"
           onClick={() => setIsAddDialogOpen(true)}
         >
-          <Plus className="mr-2 h-4 w-4" /> Add Contribution
+          <Plus className="mr-2 h-4 w-4" /> Add Debt
         </Button>
       </PageHeader>
 
@@ -199,17 +250,23 @@ const DebtTracker = () => {
                   </div>
                   <div className="flex-1 mx-4">
                     <p className="font-medium">
-                      <span className="text-muted-foreground">From:</span> {debt.from}
+                      <span className="text-muted-foreground">From:</span>{" "}
+                      {debt.from}
                     </p>
                     <p className="font-medium">
-                      <span className="text-muted-foreground">To:</span> {debt.to}
+                      <span className="text-muted-foreground">To:</span>{" "}
+                      {debt.to}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">{debt.description}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {debt.description}
+                    </p>
                   </div>
                   <div className="flex flex-col items-end">
-                    <div className="text-xl font-bold text-primary">₹{debt.amount.toFixed(2)}</div>
-                    <Button 
-                      size="sm" 
+                    <div className="text-xl font-bold text-primary">
+                      ₹{debt.amount.toFixed(2)}
+                    </div>
+                    <Button
+                      size="sm"
                       className="mt-2 bg-primary text-white"
                       onClick={() => toggleSettled(debt.id)}
                     >
@@ -238,22 +295,36 @@ const DebtTracker = () => {
             <table className="min-w-full divide-y divide-border">
               <thead className="bg-muted">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">From</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">To</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Description</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase">Amount</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                    From
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                    To
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                    Description
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase">
+                    Amount
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-border">
-                {resolvedDebts.map(debt => (
+                {resolvedDebts.map((debt) => (
                   <tr key={debt.id}>
                     <td className="px-6 py-4 whitespace-nowrap">{debt.from}</td>
                     <td className="px-6 py-4 whitespace-nowrap">{debt.to}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{debt.description}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">₹{debt.amount.toFixed(2)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {debt.description}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <Button 
+                      ₹{debt.amount.toFixed(2)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <Button
                         size="sm"
                         variant="ghost"
                         className="text-muted-foreground"
@@ -270,27 +341,27 @@ const DebtTracker = () => {
         )}
       </Card>
 
-      {/* Add Dialog */}
+      {/* Add Debt Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle className="text-xl">Add New Contribution</DialogTitle>
+            <DialogTitle className="text-xl">Add New Debt</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="from">From (Who owes)</Label>
                 <Select
-                  value={newContribution.from}
+                  value={newDebt.from}
                   onValueChange={(value) =>
-                    setNewContribution({ ...newContribution, from: value })
+                    setNewDebt({ ...newDebt, from: value })
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select person" />
                   </SelectTrigger>
                   <SelectContent>
-                    {memberNames.map(name => (
+                    {memberNames.map((name) => (
                       <SelectItem key={name} value={name}>
                         {name}
                       </SelectItem>
@@ -301,16 +372,16 @@ const DebtTracker = () => {
               <div className="grid gap-2">
                 <Label htmlFor="to">To (Who is owed)</Label>
                 <Select
-                  value={newContribution.to}
+                  value={newDebt.to}
                   onValueChange={(value) =>
-                    setNewContribution({ ...newContribution, to: value })
+                    setNewDebt({ ...newDebt, to: value })
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select person" />
                   </SelectTrigger>
                   <SelectContent>
-                    {memberNames.map(name => (
+                    {memberNames.map((name) => (
                       <SelectItem key={name} value={name}>
                         {name}
                       </SelectItem>
@@ -325,11 +396,12 @@ const DebtTracker = () => {
                 type="number"
                 id="amount"
                 name="amount"
-                value={newContribution.amount}
+                value={newDebt.amount}
                 onChange={(e) =>
-                  setNewContribution({ ...newContribution, amount: e.target.value })
+                  setNewDebt({ ...newDebt, amount: e.target.value })
                 }
                 min="0.01"
+                step="0.01"
               />
             </div>
             <div className="grid gap-2">
@@ -337,15 +409,16 @@ const DebtTracker = () => {
               <Input
                 id="description"
                 name="description"
-                value={newContribution.description}
+                value={newDebt.description}
                 onChange={(e) =>
-                  setNewContribution({ ...newContribution, description: e.target.value })
+                  setNewDebt({ ...newDebt, description: e.target.value })
                 }
+                placeholder="What was this debt for?"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleAddContribution}>Add</Button>
+            <Button onClick={handleAddDebt}>Add Debt</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -61,7 +61,7 @@ export default function SidebarNav() {
         <div className="flex flex-col h-full">
           {/* Sidebar header */}
           <div className="p-6">
-            <h2 className="text-2xl font-semibold text-white">GroupFund</h2>
+            <h2 className="text-3xl font-extrabold text-white">SplitUp</h2>
           </div>
 
           {/* Navigation */}
